@@ -285,10 +285,12 @@ def parse_condition(cond_str: str):
     right = parse_value(right_str)
 
     is_left_const = '(' not in left or left.startswith('float(')
-    is_right_const = '(' not in right or right.startswith('float(')
 
-    if is_left_const and is_right_const:
-        return f"Condition({left}, '{py_op}', {right}){flag}{hits}"
+    if is_left_const:
+        if left.startswith('float('):
+            pass
+        else:
+            left = f"const({left})"
 
     return f"({left} {py_op} {right}){flag}{hits}"
 
