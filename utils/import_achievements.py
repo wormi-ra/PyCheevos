@@ -65,7 +65,7 @@ def get_credentials():
     password = getpass.getpass("Password: ").strip()
 
     if user and password:
-        if input("Save credentials locally? (y/n): ").lower() == 's':
+        if input("Save credentials locally? (y/n): ").lower() == 'y':
             with open(LOGIN_CACHE_FILE, 'w') as f:
                 json.dump({'user': user, 'password': password}, f)
             print(f"[INFO] Credentials saved in '{LOGIN_CACHE_FILE}'")
@@ -119,6 +119,7 @@ def fetch_server_data(game_id):
         resp = sess.post(url, data=payload).json()
         
         if resp.get('Success'):
+            resp = json.dumps(resp)
             return resp
         else:
             print(f"[ERROR] Server error: {resp.get('Error')}")
@@ -130,77 +131,168 @@ def fetch_server_data(game_id):
 
 # --- LOGIC PARSER ---
 
-MEM_SIZES = {
-    '0xH': 'byte', '0x': 'word', '0xX': 'dword',
-    '0xL': 'low4', '0xU': 'high4',
-    '0xM': 'bit0', '0xN': 'bit1', '0xO': 'bit2', '0xP': 'bit3',
-    '0xQ': 'bit4', '0xR': 'bit5', '0xS': 'bit6', '0xT': 'bit7'
+MEM_TYPES = {
+    "M":  "bit0",
+    "N":  "bit1",
+    "O":  "bit2",
+    "P":  "bit3",
+    "Q":  "bit4",
+    "R":  "bit5",
+    "S":  "bit6",
+    "T":  "bit7",
+    "H":  "byte",
+    " ":  "word",
+    "W":  "tbyte",
+    "X":  "dword",
+    "I":  "word_be",
+    "J":  "tbyte_be",
+    "G":  "dword_be",
+    "L":  "low4",
+    "U":  "high4",
+    "K":  "bitcount",
+
+    # non 0x values
+    "fF": "float",
+    "fB": "float_be",
+    "fH": "double32",
+    "fI": "double32_be",
+    "fM": "mbf32",
+    "fL": "mbf32_le",
 }
 
-CMP_MAP = {'=': '==', '!=': '!=', '>': '>', '<': '<', '>=': '>=', '<=': '<='}
+MEM_TYPE_KEYS = sorted(MEM_TYPES, key=len, reverse=True)
 
-FLAG_MAP = {
-    'R': 'reset_if', 'P': 'pause_if', 'T': 'trigger', 'M': 'measured',
-    'Q': 'measured_if', 'A': 'add_source', 'B': 'sub_source',
-    'N': 'and_next', 'O': 'or_next', 'I': 'add_address',
-    'C': 'add_hits', 'Z': 'reset_next_if'
+PREFIXES = {
+    "d": ".delta()",
+    "p": ".prior()",
+    "b": ".bcd()",
+    "~": ".invert()",
 }
 
-def parse_value(val_str):
-    val_str = val_str.replace(' ', '')
-    prefix = ""
-    if val_str.startswith('d'): prefix = ".delta()"; val_str = val_str[1:]
-    elif val_str.startswith('p'): prefix = ".prior()"; val_str = val_str[1:]
-    elif val_str.startswith('b'): prefix = ".bcd()"; val_str = val_str[1:]
-    elif val_str.startswith('~'): prefix = ".invert()"; val_str = val_str[1:]
+PREFIX_KEYS = tuple(PREFIXES)
 
-    for code, func in MEM_SIZES.items():
+CMP_MAP = {
+    "!=": "!=",
+    ">=": ">=",
+    "<=": "<=",
+    "=":  "==",
+    ">":  ">",
+    "<":  "<",
+}
+
+CMP_KEYS = tuple(CMP_MAP)
+
+COND_PREFIXES = {
+    "":   "none",
+    "P:": "pause_if",
+    "R:": "reset_if",
+    "Z:": "reset_next_if",
+    "C:": "add_hits",
+    "D:": "sub_hits",
+    "A:": "add_source",
+    "B:": "sub_source",
+    "I:": "add_address",
+    "M:": "measured",
+    "T:": "trigger",
+    "N:": "and_next",
+    "O:": "or_next",
+    "G:": "measured_percent",
+    "Q:": "measured_if",
+    "K:": "remember",
+}
+
+COND_KEYS = sorted(COND_PREFIXES, key=len, reverse=True)
+
+def parse_condition_prefix(val: str):
+    for key in COND_KEYS:
+        if key and val.startswith(key):
+            return COND_PREFIXES[key], val[len(key):]
+
+    # no prefix
+    return "none", val
+
+def parse_value(val_str: str) -> str:
+    val_str = val_str.replace(" ", "")
+    suffix = ""
+
+    if val_str and val_str[0] in PREFIXES:
+        suffix = PREFIXES[val_str[0]]
+        val_str = val_str[1:]
+
+    # memory reference: must start with 0x
+    if val_str.startswith('f') and not any(val_str.startswith(code) for code in MEM_TYPE_KEYS):
+        # skip 'f' and parse the numeric part
+        return f"float({val_str[1:]}){suffix}"
+
+    # memory reference (0x or float memory types)
+    if val_str.startswith("0x"):
+        mem = val_str[2:]
+        for code in MEM_TYPE_KEYS:
+            if mem.startswith(code):
+                addr = mem[len(code):]
+                func = MEM_TYPES[code]
+                return f"{func}(0x{addr}){suffix}"
+
+    # float memory types starting with 'fF', 'fB', etc.
+    for code in MEM_TYPE_KEYS:
         if val_str.startswith(code):
             addr = val_str[len(code):]
-            return f"{func}(0x{addr}){prefix}"
-            
-    if val_str.startswith('0x'): return f"word({val_str}){prefix}"
-    if val_str.startswith('f'): return f"float({val_str[1:]})"
+            func = MEM_TYPES[code]
+            return f"{func}(0x{addr}){suffix}"
+
+    # numeric literal
     return val_str
 
-def parse_condition(cond_str):
-    hits = ""
-    hit_match = re.search(r'\.(\d+)\.?$', cond_str)
-    if hit_match:
-        if 'f' not in cond_str[hit_match.start()-1:]:
-            hits = f".with_hits({hit_match.group(1)})"
-            cond_str = cond_str[:hit_match.start()]
+def parse_hits(right_str: str):
+    right_str = right_str.rstrip(".")
+    match = re.fullmatch(r'(\d+)\.(\d+)', right_str)
+    if not match:
+        return right_str, ""
 
-    flag = ""
-    if ':' in cond_str:
-        parts = cond_str.split(':')
-        if len(parts[0]) == 1 and parts[0] in FLAG_MAP:
-            flag_code = parts[0]
-            cond_str = ':'.join(parts[1:])
-            flag = f".with_flag({FLAG_MAP[flag_code]})"
+    value, hits = match.groups()
+    return value, f".with_hits({hits})"
 
-    op = None
-    for o in ['!=', '>=', '<=', '=', '>', '<']:
-        if o in cond_str:
-            op = o
-            break
-    
-    if not op:
-        val = parse_value(cond_str)
-        return f"({val}){flag}{hits}"
+def parse_flag(cond_str: str):
+    flag, rest = parse_condition_prefix(cond_str)
+    if flag and flag != "none":
+        return f".with_flag('{flag}')", rest
+    return "", rest
 
-    left_str, right_str = cond_str.split(op, 1)
+def parse_comparison(cond_str: str):
+    for op in CMP_KEYS:
+        if op in cond_str:
+            left, right = cond_str.split(op, 1)
+            return left, CMP_MAP[op], right
+    return cond_str, None, None
+
+def parse_condition(cond_str: str):
+
+    # flag
+    flag, cond_str = parse_flag(cond_str)
+
+    # comparison
+    left_str, py_op, right_str = parse_comparison(cond_str)
+
+    # 
+    if py_op is None:
+        val = parse_value(left_str)
+        return f"({val}){flag}"
+
+    # hits
+    right_str, hits = parse_hits(right_str)
+
     left = parse_value(left_str)
     right = parse_value(right_str)
-    py_op = CMP_MAP[op]
 
     return f"({left} {py_op} {right}){flag}{hits}"
 
 def parse_logic(mem_string):
-    if not mem_string: return []
+    if not mem_string:
+        return []
+
     groups = mem_string.split('S')
     parsed_groups = []
-    
+
     for i, group in enumerate(groups):
         conditions = []
         for cond_str in group.split('_'):
@@ -208,6 +300,7 @@ def parse_logic(mem_string):
                 conditions.append(parse_condition(cond_str))
         name = "logic" if i == 0 else f"alt{i}"
         parsed_groups.append((name, conditions))
+
     return parsed_groups
 
 # --- DATA PROCESSING ---
@@ -239,7 +332,7 @@ def extract_achievements(source_data, is_file=False):
             print(f"[ERROR] Failed to read file: {e}")
             return []
 
-    elif isinstance(source_data, dict):
+    else:
         return extract_from_json_obj(source_data)
 
     return achievements
@@ -249,16 +342,26 @@ def extract_from_json_obj(content):
     source_list = []
     
     if "Sets" in content and isinstance(content["Sets"], list):
+        print("1")
         for s in content["Sets"]:
+            source_list.extend(s.get("Achievements", []))
+
+    elif "PatchData" in content and isinstance(content["PatchData"], list):
+        print("2")
+        for s in content["PatchData"]:
             source_list.extend(s.get("Achievements", []))
     
     if not source_list and "Achievements" in content:
+        print("3")
         source_list = content["Achievements"]
 
     if not source_list and "PatchData" in content:
+         print("4")
          pass
 
     for a in source_list:
+        if a.get('ID') == 101000001:
+            continue
         data.append({
             'id': a.get('ID'),
             'title': a.get('Title', 'Sem Título'),
@@ -372,6 +475,7 @@ def main():
         if choice == '2':
             server_data = fetch_server_data(game_id)
             if server_data:
+                print(type(server_data))
                 achievements = extract_achievements(server_data, is_file=False)
                 if achievements:
                     if generate_script(game_id, achievements, "RA Server"):
