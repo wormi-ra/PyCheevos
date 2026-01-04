@@ -1,7 +1,7 @@
-from models.set import AchievementSet
-from models.achievement import Achievement
-from core.helpers import byte
-from core.constants import reset_if, trigger
+from models.set import *
+from models.achievement import *
+from core.helpers import *
+from core.constants import *
 
 def damage_car():
     mem_damage = byte(0x000076)
