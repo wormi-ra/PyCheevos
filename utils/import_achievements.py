@@ -234,6 +234,8 @@ def parse_value(val_str: str) -> str:
 
     # float memory types starting with 'fF', 'fB', etc.
     for code in MEM_TYPE_KEYS:
+        if not code: continue 
+        
         if val_str.startswith(code):
             addr = val_str[len(code):]
             func = MEM_TYPES[code]
@@ -254,7 +256,7 @@ def parse_hits(right_str: str):
 def parse_flag(cond_str: str):
     flag, rest = parse_condition_prefix(cond_str)
     if flag and flag != "none":
-        return f".with_flag('{flag}')", rest
+        return f".with_flag({flag})", rest
     return "", rest
 
 def parse_comparison(cond_str: str):
@@ -265,7 +267,6 @@ def parse_comparison(cond_str: str):
     return cond_str, None, None
 
 def parse_condition(cond_str: str):
-
     # flag
     flag, cond_str = parse_flag(cond_str)
 
@@ -278,10 +279,16 @@ def parse_condition(cond_str: str):
         return f"({val}){flag}"
 
     # hits
-    right_str, hits = parse_hits(right_str)
+    right_str, hits = parse_hits(right_str) #type: ignore
 
     left = parse_value(left_str)
     right = parse_value(right_str)
+
+    is_left_const = '(' not in left or left.startswith('float(')
+    is_right_const = '(' not in right or right.startswith('float(')
+
+    if is_left_const and is_right_const:
+        return f"Condition({left}, '{py_op}', {right}){flag}{hits}"
 
     return f"({left} {py_op} {right}){flag}{hits}"
 
