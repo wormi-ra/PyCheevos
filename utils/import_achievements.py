@@ -119,7 +119,6 @@ def fetch_server_data(game_id):
         resp = sess.post(url, data=payload).json()
         
         if resp.get('Success'):
-            resp = json.dumps(resp)
             return resp
         else:
             print(f"[ERROR] Server error: {resp.get('Error')}")
@@ -141,7 +140,7 @@ MEM_TYPES = {
     "S":  "bit6",
     "T":  "bit7",
     "H":  "byte",
-    " ":  "word",
+    "":  "word",
     "W":  "tbyte",
     "X":  "dword",
     "I":  "word_be",
@@ -303,6 +302,15 @@ def parse_logic(mem_string):
 
     return parsed_groups
 
+# --- SANITIZATION ---
+def sanitize_name(note_text):
+    clean = re.sub(r"[:/-]", "_", note_text)
+    clean = re.sub(r'[^a-zA-Z0-9_\s]', '', clean)
+    words = clean.lower().split()
+    clean = "_".join(words)
+    print(clean)
+    return clean[:65]
+
 # --- DATA PROCESSING ---
 
 def extract_achievements(source_data, is_file=False):
@@ -355,9 +363,11 @@ def extract_from_json_obj(content):
         print("3")
         source_list = content["Achievements"]
 
-    if not source_list and "PatchData" in content:
-         print("4")
-         pass
+    if "PatchData" in content:
+        patch = content["PatchData"]
+        achievements = patch.get("Achievements", [])
+        print(achievements)
+        source_list.extend(achievements)
 
     for a in source_list:
         if a.get('ID') == 101000001:
@@ -398,7 +408,7 @@ def generate_script(game_id, achievements, source_name):
         alt_vars = []
         
         for name, conds in logic_groups:
-            var_name = f"{name}_logic_{ach_id}"
+            var_name = f"ach_{ach_id}_{name}"
             if name == "logic": core_var = var_name
             else: alt_vars.append(var_name)
             
