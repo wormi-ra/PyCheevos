@@ -274,6 +274,7 @@ def generate_script(game_id, achievements, source_name):
     
     lines = []
     lines.append("from core.helpers import *")
+    lines.append("from core.constants import *")
     lines.append("from core.condition import Condition")
     lines.append("from models.achievement import Achievement")
     lines.append("from models.set import AchievementSet")
@@ -294,7 +295,7 @@ def generate_script(game_id, achievements, source_name):
         alt_vars = []
         
         for name, conds in logic_groups:
-            var_name = f"{ach_id}_{name}_logic"
+            var_name = f"{name}_logic_{ach_id}"
             if name == "logic": core_var = var_name
             else: alt_vars.append(var_name)
             
