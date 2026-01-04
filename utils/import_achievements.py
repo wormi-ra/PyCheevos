@@ -225,7 +225,8 @@ def extract_achievements(source_data, is_file=False):
                 else:
                     for line in f:
                         if re.match(r'^\d+:', line):
-                            parts = line.split(':')
+                            parts = line.split('":')
+                            print(parts)
                             if len(parts) >= 4:
                                 achievements.append({
                                     'id': parts[0],
@@ -293,7 +294,7 @@ def generate_script(game_id, achievements, source_name):
         alt_vars = []
         
         for name, conds in logic_groups:
-            var_name = f"logic_{ach_id}_{name}"
+            var_name = f"{ach_id}_{name}_logic"
             if name == "logic": core_var = var_name
             else: alt_vars.append(var_name)
             
