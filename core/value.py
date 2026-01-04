@@ -173,7 +173,19 @@ class RecallValue(MemoryValue):
 class ConstantValue:
     def __init__(self, value: Union[int, float]):
         self.value = value
+
     def render(self) -> str:
         if isinstance(self.value, float):
             return f"f{self.value}"
         return str(self.value)
+    
+    def __eq__(self, other): return self._cond("=", other) # type: ignore
+    def __ne__(self, other): return self._cond("!=", other) # type: ignore
+    def __gt__(self, other): return self._cond(">", other)
+    def __ge__(self, other): return self._cond(">=", other)
+    def __lt__(self, other): return self._cond("<", other)
+    def __le__(self, other): return self._cond("<=", other)
+
+    def _cond(self, cmp, other):
+        from .condition import Condition
+        return Condition(self, cmp, other)

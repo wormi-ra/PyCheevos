@@ -1,4 +1,4 @@
-from .value import MemoryValue, RecallValue
+from .value import MemoryValue, RecallValue, ConstantValue
 from .constants import MemorySize
 
 def byte(address: int) -> MemoryValue: return MemoryValue(address, MemorySize.BIT8)
@@ -37,3 +37,5 @@ def bcd(mem: MemoryValue) -> MemoryValue:   return mem.bcd()
 def invert(mem: MemoryValue) -> MemoryValue: return mem.invert()
 
 def recall() -> RecallValue: return RecallValue()
+
+def const(value: int) -> ConstantValue: return ConstantValue(value)
