@@ -285,7 +285,6 @@ def parse_condition(cond_str: str):
     if right_str[0] == "f":
         right_str = right_str[1:]
 
-    print(right_str)
     left = parse_value(left_str)
     right = parse_value(right_str)
 
@@ -322,7 +321,6 @@ def sanitize_name(note_text):
     clean = re.sub(r'[^a-zA-Z0-9_\s]', '', clean)
     words = clean.lower().split()
     clean = "_".join(words)
-    print(clean)
     return clean[:65]
 
 # --- DATA PROCESSING ---
@@ -341,7 +339,6 @@ def extract_achievements(source_data, is_file=False):
                     for line in f:
                         if re.match(r'^\d+:', line):
                             parts = line.split('":')
-                            print(parts)
                             if len(parts) >= 4:
                                 achievements.append({
                                     'id': parts[0],
@@ -364,23 +361,19 @@ def extract_from_json_obj(content):
     source_list = []
     
     if "Sets" in content and isinstance(content["Sets"], list):
-        print("1")
         for s in content["Sets"]:
             source_list.extend(s.get("Achievements", []))
 
     elif "PatchData" in content and isinstance(content["PatchData"], list):
-        print("2")
         for s in content["PatchData"]:
             source_list.extend(s.get("Achievements", []))
     
     if not source_list and "Achievements" in content:
-        print("3")
         source_list = content["Achievements"]
 
     if "PatchData" in content:
         patch = content["PatchData"]
         achievements = patch.get("Achievements", [])
-        print(achievements)
         source_list.extend(achievements)
 
     for a in source_list:
@@ -397,7 +390,7 @@ def extract_from_json_obj(content):
 
 def generate_script(game_id, achievements, source_name):
     if not achievements: return False
-    print(f"\n[GENERATING] Processing {len(achievements)} achievements of {source_name}...")
+    print(f"\n[GENERATING] Processing {len(achievements)} achievements of {source_name}...\n")
     
     lines = []
     lines.append("from core.helpers import *")
@@ -499,7 +492,6 @@ def main():
         if choice == '2':
             server_data = fetch_server_data(game_id)
             if server_data:
-                print(type(server_data))
                 achievements = extract_achievements(server_data, is_file=False)
                 if achievements:
                     if generate_script(game_id, achievements, "RA Server"):
