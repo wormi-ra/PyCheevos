@@ -151,8 +151,8 @@ MEM_TYPES = {
     "K":  "bitcount",
 
     # non 0x values
-    "fF": "float",
-    "fB": "float_be",
+    "fF": "float32",
+    "fB": "float32_be",
     "fH": "double32",
     "fI": "double32_be",
     "fM": "mbf32",
@@ -166,6 +166,7 @@ PREFIXES = {
     "p": ".prior()",
     "b": ".bcd()",
     "~": ".invert()",
+
 }
 
 PREFIX_KEYS = tuple(PREFIXES)
@@ -281,6 +282,10 @@ def parse_condition(cond_str: str):
     # hits
     right_str, hits = parse_hits(right_str) #type: ignore
 
+    if right_str[0] == "f":
+        right_str = right_str[1:]
+
+    print(right_str)
     left = parse_value(left_str)
     right = parse_value(right_str)
 
@@ -427,8 +432,8 @@ def generate_script(game_id, achievements, source_name):
             lines.append("]")
         
         lines.append(f"ach_{ach_id} = Achievement(")
-        lines.append(f'    title="{title}",')
-        lines.append(f'    description="{ach["desc"]}",')
+        lines.append(f'    title="""{title}""",')
+        lines.append(f'    description="""{ach["desc"]}""",')
         lines.append(f'    points={ach["points"]},')
         lines.append(f'    id={ach_id}')
         lines.append(")")
