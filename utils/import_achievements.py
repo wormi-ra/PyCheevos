@@ -219,21 +219,36 @@ def parse_value(val_str: str) -> str:
         suffix = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
-    # memory reference: must start with 0x
+    # floats
     if val_str.startswith('f') and not any(val_str.startswith(code) for code in MEM_TYPE_KEYS):
-        # skip 'f' and parse the numeric part
         return f"float({val_str[1:]}){suffix}"
+    
+    def to_hex(s):
+        if s.isdigit(): return hex(int(s))
+        return s
 
-    # memory reference (0x or float memory types)
+    # memory reference (0x...)
     if val_str.startswith("0x"):
         mem = val_str[2:]
         for code in MEM_TYPE_KEYS:
             if mem.startswith(code):
                 addr = mem[len(code):]
                 func = MEM_TYPES[code]
-                return f"{func}(0x{addr}){suffix}"
+                if not addr: addr = "0"
 
-    # float memory types starting with 'fF', 'fB', etc.
+                if '&' in addr:
+                    parts = addr.split('&')
+                    addr_base = parts[0]
+                    masks = parts[1:]
+                    if not addr_base: addr_base = "0"
+                    expr = f"{func}(0x{addr_base}){suffix}"
+                    for m in masks:
+                        expr = f"{expr} & value({to_hex(m)})"
+                    return f"({expr})"
+                
+                return f"{func}(0x{addr}){suffix}"
+        
+    # float memory types (fF, fB, etc.)
     for code in MEM_TYPE_KEYS:
         if not code: continue 
         
@@ -242,13 +257,14 @@ def parse_value(val_str: str) -> str:
             func = MEM_TYPES[code]
             return f"{func}(0x{addr}){suffix}"
         
+    # numeric literals (hex or int)
     if val_str.startswith("0x") or val_str.isdigit():
-         return f"value({val_str}){suffix}"
+         return f"value({to_hex(val_str)}){suffix}"
     
+    # float literal
     if val_str.replace('.', '', 1).isdigit():
          return f"float({val_str}){suffix}"
 
-    # numeric literal
     return val_str
 
 def parse_hits(right_str: str):
