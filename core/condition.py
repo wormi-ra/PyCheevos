@@ -1,6 +1,56 @@
 from .constants import Flag
 from .value import MemoryValue, ConstantValue
-from typing import Union, Optional
+from typing import Union, Optional, List
+
+
+INVERT_MAP = {
+    '=': '!=', '!=': '=',
+    '<': '>=', '>=': '<',
+    '>': '<=', '<=': '>'
+}
+
+
+class ConditionList(list):
+    def __init__(self, items=None):
+        super().__init__(items or [])
+
+    def __and__(self, other):
+        if self:
+            self[-1] = self[-1].with_flag(Flag.AND_NEXT)
+
+        if isinstance(other, ConditionList):
+            self.extend(other)
+        elif isinstance(other, Condition):
+            self.append(other)
+        return self
+    
+    def __or__(self, other):
+        if self:
+            self[-1] = self[-1].with_flag(Flag.OR_NEXT)
+        
+        if isinstance(other, ConditionList):
+            self.extend(other)
+        elif isinstance(other, Condition):
+            self.append(other)
+        return self
+    
+    def __invert__(self):
+        new_list = ConditionList()
+        for i, cond in enumerate(self):
+            inv_cond = ~cond
+
+            if inv_cond.flag == Flag.AND_NEXT:
+                inv_cond = inv_cond.with_flag(Flag.OR_NEXT)
+            elif inv_cond.flag == Flag.OR_NEXT:
+                inv_cond = inv_cond.with_flag(Flag.AND_NEXT)
+
+            new_list.append(inv_cond)
+        return new_list
+    
+    def with_flag(self, flag: Flag):
+        if self:
+            self[-1] = self[-1].with_flag(flag)
+        return self
 
 class Condition:
     def __init__(
@@ -32,6 +82,18 @@ class Condition:
         new_cond = self._copy()
         new_cond.flag = flag
         return new_cond
+    
+    def __invert__(self):
+        new_cmp = INVERT_MAP.get(self.cmp, self.cmp)
+        return Condition(self.lvalue, new_cmp, self.rvalue, self.flag, self.hits)
+    
+    def __and__(self, other):
+        cl = self.with_flag(Flag.AND_NEXT)
+        return ConditionList([cl, other])
+    
+    def __or__(self, other):
+        cl = self.with_flag(Flag.OR_NEXT)
+        return ConditionList([cl, other])
 
     def _validate(self):        
         boolean_flags = [Flag.TRIGGER, Flag.RESET_IF, Flag.PAUSE_IF]
@@ -63,4 +125,7 @@ class Condition:
         return "".join(parts)
     
     def __str__(self):
+        return self.render()
+    
+    def __repr__(self):
         return self.render()
