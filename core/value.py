@@ -179,6 +179,10 @@ class ConstantValue:
             return f"f{self.value}"
         return str(self.value)
     
+    def with_flag(self, flag: Flag):
+        from .condition import Condition
+        return Condition(self, flag=flag)
+    
     def __eq__(self, other): return self._cond("=", other) # type: ignore
     def __ne__(self, other): return self._cond("!=", other) # type: ignore
     def __gt__(self, other): return self._cond(">", other)

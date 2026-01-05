@@ -38,4 +38,4 @@ def invert(mem: MemoryValue) -> MemoryValue: return mem.invert()
 
 def recall() -> RecallValue: return RecallValue()
 
-def const(value: int) -> ConstantValue: return ConstantValue(value)
+def value(value: int) -> ConstantValue: return ConstantValue(value)

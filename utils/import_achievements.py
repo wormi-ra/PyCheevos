@@ -241,6 +241,12 @@ def parse_value(val_str: str) -> str:
             addr = val_str[len(code):]
             func = MEM_TYPES[code]
             return f"{func}(0x{addr}){suffix}"
+        
+    if val_str.startswith("0x") or val_str.isdigit():
+         return f"value({val_str}){suffix}"
+    
+    if val_str.replace('.', '', 1).isdigit():
+         return f"float({val_str}){suffix}"
 
     # numeric literal
     return val_str
@@ -288,13 +294,11 @@ def parse_condition(cond_str: str):
     left = parse_value(left_str)
     right = parse_value(right_str)
 
-    is_left_const = '(' not in left or left.startswith('float(')
+    is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
+    is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
 
-    if is_left_const:
-        if left.startswith('float('):
-            pass
-        else:
-            left = f"const({left})"
+    if is_left_const and is_right_const:
+        return f"Condition({left}, '{py_op}', {right}){flag}{hits}"
 
     return f"({left} {py_op} {right}){flag}{hits}"
 
