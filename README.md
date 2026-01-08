@@ -11,6 +11,15 @@ Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full 
 ### Usage
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
 
+### Get Started
+Create a new .py file and import the library modules (`models` and `core`).  
+
+Run your .py file, it should generate to a folder called `output` in the same directory as your .py file.  
+You can change this output location by defining a path in the `.save()` function of `AchievementSet`.  
+
+- To import achievements, run `import_achievements` found at `pycheevos/utils`.  
+- To import notes, run `import_notes` found at `pycheevos/utils`.  
+
 #### Small Demo
 ``` Python
 from models.set import AchievementSet
