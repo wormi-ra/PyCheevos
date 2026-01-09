@@ -8,6 +8,7 @@ The **Models** module defines the structural components of a RetroAchievements s
     - [Methods](#methods)
 2. [Achievement](#2-achievement)
     - [Initialization](#initialization-1)
+    - [Achievement Types (Enum)](#achievement-types-enum)
     - [Logic Methods](#logic-methods)
 3. [Leaderboard](#3-leaderboard)
     - [Initialization](#initialization-2)
@@ -22,7 +23,7 @@ The **Models** module defines the structural components of a RetroAchievements s
     - [Static vs Dynamic](#usage-static-vs-dynamic)
 6. [How it works](#6-under-the-hood-how-it-works)
     - [The Code](#the-code)
-
+#
 ### 1. **AchievementSet**
 The `AchievementSet` is the main container for your project. It holds all achievements, leaderboards, and the rich presence script, and is responsible for exporting them to text files.
 
@@ -31,7 +32,6 @@ The `AchievementSet` is the main container for your project. It holds all achiev
 from models.set import AchievementSet
 
 game_set = AchievementSet(game_id=12345, title="My Awesome Game")
-
 ```
 
 * **game_id**: The unique ID of the game on RetroAchievements.org.
@@ -45,8 +45,7 @@ game_set = AchievementSet(game_id=12345, title="My Awesome Game")
 * `save(path=None)`: Exports `[ID]-User.txt` and `[ID]-Rich.txt`.
 * If `path` is not provided, defaults to an `output/` folder next to the script file.
 
-
-
+#
 ### 2. **Achievement**
 
 Represents a single achievement. It manages the logic groups: Core (Required) and Alts (Alternative paths).
@@ -55,16 +54,26 @@ Represents a single achievement. It manages the logic groups: Core (Required) an
 
 ```python
 from models.achievement import Achievement
+from core.constants import AchievementType
 
 ach = Achievement(
     title="Master of Unlocking",
     description="Unlock 10 doors.",
     points=5,
     id=111000001,
-    badge="12345"
+    badge="12345",
+    type=AchievementType.PROGRESSION
 )
-
 ```
+
+#### **Achievement Types (Enum)**
+
+Always use the `AchievementType` enum to prevent typos.
+
+* `AchievementType.STANDARD`: Default (empty string).
+* `AchievementType.PROGRESSION`: Automatically unlocks as you play (progression markers).
+* `AchievementType.WIN_CONDITION`: Triggers when beating the game.
+* `AchievementType.MISSABLE`: Can be missed in a single playthrough.
 
 #### **Logic Methods**
 
@@ -83,9 +92,8 @@ ach.add_alt(mem_health > 0)
 
 # Alt Group 2: Hardcore (No Cheats)
 ach.add_alt(mem_cheats == 0)
-
 ```
-
+#
 ### 3. **Leaderboard**
 
 Represents a leaderboard (Speedrun, High Score). It consists of four distinct logic sections.
@@ -142,7 +150,6 @@ lb.set_submit(level_complete == 1)
 
 # Value: The in-game timer (measured in frames)
 lb.set_value(mem_timer) 
-
 ```
 
 **B. High Score (Highest Value)**
@@ -167,9 +174,8 @@ lb_score.set_submit(state == 3) # 3 = Game Over
 
 # Value: The raw score memory address
 lb_score.set_value(score)
-
 ```
-
+#
 ### 4. **Rich Presence**
 
 Handles the dynamic status display (Rich Presence) seen on the website.
@@ -179,7 +185,6 @@ Handles the dynamic status display (Rich Presence) seen on the website.
 ```python
 from models.rich_presence import RichPresence
 rp = RichPresence()
-
 ```
 
 #### **Lookups & Displays**
@@ -234,7 +239,6 @@ rp.add_display(
 
 # 3. Add to Set
 game_set.add_rich_presence(rp)
-
 ```
 
 **Macros available:**
@@ -243,7 +247,7 @@ game_set.add_rich_presence(rp)
 * `@Value(address)`: Shows raw number.
 * `@Value(address*10)`: Shows scaled number.
 * `@Float1(address)`: Shows float with 1 decimal.
-
+#
 ### 5. **Game Objects (OOP)**
 
 You can create reusable classes for game entities (like Player, Enemy, Inventory) using the `GameObject` base class. This allows you to define memory offsets once and reuse them for both static memory addresses and dynamic pointers.
@@ -265,7 +269,6 @@ class Player(GameObject):
      
     def is_dead(self):
         return self.health == 0
-
 ```
 
 #### **Usage (Static vs Dynamic)**
@@ -285,24 +288,23 @@ p2 = Player(pointer)
 # Using properties
 ach.add_core(p1.is_dead())
 ach.add_core(p2.coins >= 50)
-
 ```
-
+#
 ### 6. **Under the Hood: How it works**
 
 Here is a complete example showing the Python code and the exact string PyCheevos generates for RetroAchievements.
 
 **The Scenario: "Untouchable"**
-
 **Goal**: Complete Stage 1 with 50+ coins without taking damage.
 
 #### **The Code**
 
 ```python
-from models.set import AchievementSet
-from models.achievement import Achievement
-from core.helpers import byte, value
-from core.constants import Flag
+from models.set import *
+from models.achievement import *
+from core.helpers import *
+from core.constants import *
+
 
 def damage_car():
     mem_damage = byte(0x000076)
@@ -348,7 +350,8 @@ monaco_damageless = Achievement(
     title="Untouchable",
     description="Win a race at the Monaco circuit with zero damage to your car",
     points=25,
-    badge="00000"
+    badge="00000",
+    type=AchievementType.PROGRESSION
 )
 
 l_core, l_alt1 = damage_car()
@@ -358,15 +361,14 @@ monaco_damageless.add_alt(l_alt1) # Adds Reset logic as an Alternate Group
 
 my_set.add_achievement(monaco_damageless)
 # my_set.save()
-
 ```
+
 #### **The Generated Output**
 
 This is the string written to `23121-User.txt`:
 
 ```plaintext
-1:"0xH00009e=0.1._0xH0013de=14_0xH0007d9=0_T:0xH0007dd=7_d0xH0007dd=13SR:0xH000076!=0":Untouchable:Win a race at the Monaco circuit with zero damage to your car::::PyCheevos:25:::::00000
-
+111001:"0xH009e=0.1._0xH13de=14_0xH07d9=0_T:0xH07dd=7_d0xH07dd=13SR:0xH0076!=0":"Untouchable":"Win a race at the Monaco circuit with zero damage to your car":::progression:PyCheevos:25:::::00000
 ```
 
 #### **Decoding the String**
