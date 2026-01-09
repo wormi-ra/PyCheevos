@@ -1,4 +1,5 @@
 from enum import Enum
+
 class MemorySize(Enum):
     BIT0        =   "M"
     BIT1        =   "N"
@@ -73,10 +74,7 @@ class LeaderboardFormat(Enum):
     FLOAT5          = "FLOAT5"
     FLOAT6          = "FLOAT6"
 
-
-
 # EXPORTING FLAGS (UPPERCASE - Constants Style)
-
 NONE              = Flag.NONE
 PAUSE_IF          = Flag.PAUSE_IF
 RESET_IF          = Flag.RESET_IF
@@ -93,25 +91,6 @@ OR_NEXT           = Flag.OR_NEXT
 MEASURED_PERCENT  = Flag.MEASURED_PERCENT
 MEASURED_IF       = Flag.MEASURED_IF
 REMEMBER          = Flag.REMEMBER
-
-
-# EXPORTING FLAGS (LOWERCASE - Pythonic Style)
-
-pause_if          = Flag.PAUSE_IF
-reset_if          = Flag.RESET_IF
-reset_next_if     = Flag.RESET_NEXT_IF
-add_hits          = Flag.ADD_HITS
-sub_hits          = Flag.SUB_HITS
-add_source        = Flag.ADD_SOURCE
-sub_source        = Flag.SUB_SOURCE
-add_address       = Flag.ADD_ADDRESS
-measured          = Flag.MEASURED
-trigger           = Flag.TRIGGER
-and_next          = Flag.AND_NEXT
-or_next           = Flag.OR_NEXT
-measured_percent  = Flag.MEASURED_PERCENT
-measured_if       = Flag.MEASURED_IF
-remember          = Flag.REMEMBER
 
 
 class AchievementType(Enum):

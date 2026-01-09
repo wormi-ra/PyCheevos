@@ -1,5 +1,5 @@
 from .value import MemoryValue, RecallValue, ConstantValue
-from .constants import MemorySize
+from .constants import MemorySize, Flag
 
 def byte(address: int) -> MemoryValue: return MemoryValue(address, MemorySize.BIT8)
 def word(address: int) -> MemoryValue: return MemoryValue(address, MemorySize.BIT16)
@@ -39,3 +39,20 @@ def invert(mem: MemoryValue) -> MemoryValue: return mem.invert()
 def recall() -> RecallValue: return RecallValue()
 
 def value(value: int) -> ConstantValue: return ConstantValue(value)
+
+# --- New Flag Helper Functions ---
+def pause_if(condition):         return condition.with_flag(Flag.PAUSE_IF)
+def reset_if(condition):         return condition.with_flag(Flag.RESET_IF)
+def reset_next_if(condition):    return condition.with_flag(Flag.RESET_NEXT_IF)
+def add_hits(condition):         return condition.with_flag(Flag.ADD_HITS)
+def sub_hits(condition):         return condition.with_flag(Flag.SUB_HITS)
+def add_source(condition):       return condition.with_flag(Flag.ADD_SOURCE)
+def sub_source(condition):       return condition.with_flag(Flag.SUB_SOURCE)
+def add_address(condition):      return condition.with_flag(Flag.ADD_ADDRESS)
+def measured(condition):         return condition.with_flag(Flag.MEASURED)
+def measured_if(condition):      return condition.with_flag(Flag.MEASURED_IF)
+def trigger(condition):          return condition.with_flag(Flag.TRIGGER)
+def remember(condition):         return condition.with_flag(Flag.REMEMBER)
+def and_next(condition):         return condition.with_flag(Flag.AND_NEXT)
+def or_next(condition):          return condition.with_flag(Flag.OR_NEXT)
+def measured_percent(condition): return condition.with_flag(Flag.MEASURED_PERCENT)
