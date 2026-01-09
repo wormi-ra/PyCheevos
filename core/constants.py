@@ -112,3 +112,10 @@ or_next           = Flag.OR_NEXT
 measured_percent  = Flag.MEASURED_PERCENT
 measured_if       = Flag.MEASURED_IF
 remember          = Flag.REMEMBER
+
+
+class AchievementType(Enum):
+    STANDARD = ""
+    PROGRESSION = "progression"
+    WIN_CONDITION = "win_condition"
+    MISSABLE = "missable"

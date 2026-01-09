@@ -1,14 +1,20 @@
 from typing import List, Union
-from core.condition import Condition
+from core.condition import *
+from core.constants import *
 
 class Achievement:
-    def __init__(self, title: str, description: str, points: int, id: int = 0, badge: str = "00000", type: str = ""):
+    def __init__(self, title: str, description: str, points: int, id: int = 0, badge: str = "00000", type: Union[AchievementType, str] = AchievementType.STANDARD):
         self.id = id
         self.title = title
         self.description = description
         self.points = points
         self.badge = badge
-        self.type = type
+
+        if isinstance(type, AchievementType):
+            self.type = type.value
+        else:
+            self.type = type
+
         self.author = "PyCheevos"
         self.core: List[Condition] = []
         self.alts: List[List[Condition]] = []
