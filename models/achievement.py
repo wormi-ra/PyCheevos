@@ -58,6 +58,6 @@ class Achievement:
             full_mem = core_string
         
         return (
-            f'{self.id}:"{full_mem}":{self.title}:{self.description}'
+            f'{self.id}:"{full_mem}":"{self.title}":"{self.description}"'
             f'::::{self.author}:{self.points}:::::{self.badge}'
         )
