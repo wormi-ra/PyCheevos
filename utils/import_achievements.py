@@ -162,11 +162,10 @@ MEM_TYPES = {
 MEM_TYPE_KEYS = sorted(MEM_TYPES, key=len, reverse=True)
 
 PREFIXES = {
-    "d": ".delta()",
-    "p": ".prior()",
-    "b": ".bcd()",
-    "~": ".invert()",
-
+    "d": "delta",
+    "p": "prior",
+    "b": "bcd",
+    "~": "invert",
 }
 
 PREFIX_KEYS = tuple(PREFIXES)
@@ -213,78 +212,70 @@ def parse_condition_prefix(val: str):
 
 def parse_value(val_str: str) -> str:
     val_str = val_str.replace(" ", "")
-    suffix = ""
-
-    # 1. Extract Prefix (d, p, b, ~)
-    if val_str and val_str[0] in PREFIXES:
-        suffix = PREFIXES[val_str[0]]
+    if not val_str:
+        return "value(0)"
+    
+    wrap_func = ""
+    if val_str[0] in PREFIXES:
+        wrap_func = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
-    # 2. Recall handling (Correction)
-    # Detects {recall} and replaces it with recall() before anything else.
+    # --- RECALL TREATMENT ---
     if "{recall}" in val_str:
-        val_str = val_str.replace("{recall}", "recall()")
-        # Returns within parentheses to apply the suffix (e.g., delta) to the result.
-        return f"({val_str}){suffix}"
+        val_str = re.sub(r"0x[a-zA-Z]", "0x", val_str)
 
-    # 3. Floats
-    if val_str.startswith('f') and not any(val_str.startswith(code) for code in MEM_TYPE_KEYS):
-        return f"float({val_str[1:]}){suffix}"
-    
-    def to_hex(s):
-        if s.isdigit(): return hex(int(s))
-        return s
+        op_match = re.search(r"(0x[a-fA-F0-9]+|[\d]+)\s*([\+\-\*\/])\s*\{recall\}", val_str)
+        
+        if op_match:
+            numero = op_match.group(1)
+            operador = op_match.group(2)
+            
+            if numero.startswith("0x"):
+                val_obj = f"value({numero})"
+            else:
+                val_obj = f"value({int(numero)})"
+            result = f"recall() {operador} {val_obj}"
+        else:
+            result = val_str.replace("{recall}", "recall()")
 
-    # 4. Memory reference (0x...)
+        if wrap_func:
+            return f"{wrap_func}({result})"
+        return result
+
     if val_str.startswith("0x"):
-        mem = val_str[2:]
-        for code in MEM_TYPE_KEYS:
-            if mem.startswith(code):
-                addr = mem[len(code):]
-                func = MEM_TYPES[code]
-                
-                if not addr: addr = "0"
+        match = re.match(r"0x([a-zA-Z])?([a-fA-F0-9]+)", val_str)
+        if match:
+            prefix_type = match.group(1) if match.group(1) else ""
+            addr = match.group(2)
+            func = MEM_TYPES.get(prefix_type, "word") 
+            result = f"{func}(0x{addr})"
+        else:
+            result = "value(0)"
+            wrap_func = ""
+    elif val_str.isdigit():
+        result = f"value({int(val_str)})"
+        wrap_func = ""
+    else:
+        result = "value(0)"
+        wrap_func = ""
 
-                # Bitmask logic (within the memory match)
-                if '&' in addr:
-                    parts = addr.split('&')
-                    addr_base = parts[0]
-                    masks = parts[1:]
-
-                    if not addr_base: addr_base = "0"
-                    expr = f"{func}(0x{addr_base}){suffix}"
-                    for m in masks:
-                        expr = f"{expr} & value({to_hex(m)})"
-                    return f"({expr})"
-                return f"{func}(0x{addr}){suffix}"
-        
-    # 5. Float memory types (fF, fB, etc.)
-    for code in MEM_TYPE_KEYS:
-        if not code: continue 
-        
-        if val_str.startswith(code):
-            addr = val_str[len(code):]
-            func = MEM_TYPES[code]
-            return f"{func}(0x{addr}){suffix}"
-        
-    # 6. Numeric literals (hex or int)
-    if val_str.startswith("0x") or val_str.isdigit():
-         return f"value({to_hex(val_str)}){suffix}"
-    
-    # 7. Float literal
-    if val_str.replace('.', '', 1).isdigit():
-         return f"float({val_str}){suffix}"
-
-    return val_str
+    if wrap_func:
+        return f"{wrap_func}({result})"
+    return result
 
 def parse_hits(right_str: str):
-    right_str = right_str.rstrip(".")
-    match = re.fullmatch(r'(\d+)\.(\d+)', right_str)
-    if not match:
-        return right_str, ""
-
-    value, hits = match.groups()
-    return value, f".with_hits({hits})"
+    """Corrigido para remover zeros à esquerda em hits como .000999"""
+    if not right_str:
+        return "0", ""
+    
+    right_str = right_str.strip('.')
+    match = re.search(r'(\d+)\.(\d+)', right_str)
+    if match:
+        val = str(int(match.group(1)))
+        hits = str(int(match.group(2)))
+        return val, f".with_hits({hits})"
+    
+    return str(int(right_str)) if right_str.isdigit() else right_str, ""
 
 def parse_flag(cond_str: str):
     flag, rest = parse_condition_prefix(cond_str)
@@ -487,8 +478,7 @@ def main():
     print("--- PyCheevos Achievement Importer ---")
     
     while True:
-        print("\n" + "="*30)
-        game_id = input("Enter the Game ID (or 'q' to exit): ").strip()
+        game_id = input("\nEnter the Game ID (or 'q' to exit): ").strip()
         if game_id.lower() == 'q': break
         if not game_id: continue
 

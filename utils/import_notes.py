@@ -174,7 +174,6 @@ def sanitize_name(note_text):
     
     if clean and clean[0].isdigit(): 
         clean = "var_" + clean
-    print(clean)
     return clean[:65]
 
 def detect_type(note_text, default="byte"):
