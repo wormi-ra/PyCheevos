@@ -7,76 +7,50 @@ While `models` (Achievement, Set) handle the "structure", `core` handles the "lo
 ### Table of Contents
 
 1. [Memory Helpers](#1-memory-helpers)
-    - [Accessing Raw Address](#accessing-raw-address)
     - [Standard Sizes](#standard-sizes)
     - [Bits & Nibbles](#bits--nibbles)
     - [Floating Point](#floating-point)
-2. [Constants & Safety](#2-constants--safety)
-    - [The value( ) Helper](#the-value-helper)
-3. [Value Modifiers](#3-value-modifiers)
-4. [Arithmetic & Pointers](#4-arithmetic--pointers)
+2. [Constants & Safety (`value`)](#2-constants--safety-value)
+3. [Enums & Constants](#3-enums--constants)
+    - [Achievement Types](#achievement-types)
+    - [Leaderboard Formats](#leaderboard-formats)
+4. [Value Modifiers](#4-value-modifiers)
+5. [Arithmetic & Pointers](#5-arithmetic--pointers)
     - [Basic Math](#basic-math)
     - [Pointer Chains](#pointer-chains-)
-5. [Bitwise Operations (Memory)](#5-bitwise-operations-memory)
-6. [Conditions, Flags & Logic](#6-conditions-flags--logic)
+6. [Bitwise Operations](#6-bitwise-operations-memory)
+7. [Conditions, Flags & Logic](#7-conditions-flags--logic)
     - [Hit Counts](#hit-counts-with_hits)
     - [Applying Flags](#applying-flags-with_flag)
     - [Logical Operators (Chain)](#logical-operators-chain)
-7. [Remember & Recall](#7-remember--recall)
-
----
+8. [Remember & Recall](#8-remember--recall)
+#
 ### 1. **Memory Helpers**
 
-Located in `core.helpers`, these functions are the primary way to define memory addresses. You generally do not need to import `MemoryValue` directly.
-
-#### **Accessing Raw Address**
-Sometimes you may need the integer value of the address back (e.g., for meta-programming or loops). You can use the `.raw_address` property on static memory objects.
-
-```python
-mem = byte(0x1234)
-print(mem.raw_address)  # Output: 4660 (0x1234)
-```
-
-**Note**: Accessing `.raw_address` on a pointer chain or complex expression (like `base >> offset`) will raise an error, as those do not have a single static address.
+Located in `core.helpers`, these functions are the primary way to define memory addresses.
 
 #### **Standard Sizes**
-
-| function | size | RA Syntax | Example |
-| --- | --- | --- | --- |
+| Function | Size | RA Syntax | Example |
+|---|---|---|---|
 | `byte(addr)` | 8-bit | `0xh...` | `byte(0x100)` |
 | `word(addr)` | 16-bit | `0x ...` | `word(0x100)` |
 | `dword(addr)` | 32-bit | `0xX...` | `dword(0x100)` |
 
 #### **Bits & Nibbles**
-
-| function | Description | RA Syntax |
-| --- | --- | --- |
+| Function | Description | RA Syntax |
+|---|---|---|
 | `bit0(addr)`...`bit7(addr)` | Single Bit access | `0xM...` to `0xT...` |
 | `lower(addr)` | Lower 4 bits (Nibble) | `0xL...` |
 | `high4(addr)` | Upper 4 bits (Nibble) | `0xU...` |
 
 #### **Floating Point**
-
-| function | Description | RA Syntax |
-| --- | --- | --- |
+| Function | Description | RA Syntax |
+|---|---|---|
 | `float32(addr)` | 32-bit Float | `fF...` |
 | `float32be(addr)` | 32-bit Float (Big Endian) | `fB...` |
-| `double32(addr)` | 32-bit Double | `fH...` |
 | `mbf32(addr)` | Microsoft Binary Format | `fM...` |
-
-#### **Usage Example**:
-
-```python
-from core.helpers import byte, word, bit0
-
-level_id = byte(0x00A1)
-timer = word(0x00B0)
-is_active = bit0(0x00F0)
-```
----
-### 2. **Constants & Safety**
-
-#### **The `value()` Helper**
+#
+### 2. **Constants & Safety (`value`)**
 
 Python evaluates mathematical comparisons immediately (`0 == 0` becomes `True`). To treat constant numbers as Logic Objects (so they can accept flags or be part of a generated condition), use `value()`.
 
@@ -89,60 +63,53 @@ from core.helpers import value, measured
 # GOOD: PyCheevos treats this as a Condition object
 (value(0) == value(1)).with_flag(measured)
 
-# Comparison with memory
-# Equivalent to: byte(0x1234) > 10
+# Comparison with memory (Optional but recommended for clarity)
 byte(0x1234) > value(10) 
 ```
----
-### 3. **Value Modifiers**
+#
+
+### 3. **Enums & Constants**
+
+Use these Enums from `core.constants` to ensure your scripts are typo-free and valid.
+
+#### **Achievement Types**
+
+Used in `Achievement(type=...)`.
+
+* `AchievementType.STANDARD`: Default.
+* `AchievementType.PROGRESSION`: Events that happen naturally (Level completion).
+* `AchievementType.WIN_CONDITION`: Beating the game.
+* `AchievementType.MISSABLE`: Events that can be missed.
+
+#### **Leaderboard Formats**
+
+Used in `Leaderboard(format=...)`.
+
+* `LeaderboardFormat.VALUE`: Generic score.
+* `LeaderboardFormat.SECS`: Seconds.
+* `LeaderboardFormat.MILLISECS`: Milliseconds.
+* `LeaderboardFormat.FRAMES`: Frames (converts to time).
+* `LeaderboardFormat.SCORE`: Score points (000000).
+#
+### 4. **Value Modifiers**
 
 These functions transform how the emulator reads a value relative to the previous frame.
 
-`delta(memory)`
-
-Returns the value the memory had in the **previous frame**.
-
-* **Use case**: Checking for the exact frame a value changes such as a level ID changing from level 1 to level 2.
-* **Example**: `level_id != delta(level_id)` (Level ID changed).
-
-`prior(memory)`
-
-Returns the previous value of the address **regardless of the number of frames since changing value**.
-
-* **Use case**: Checking that a user accessed a level through the proper means and not through a password on the main menu.
-* **Example**: `prior(level_id != 0)`
-
-`bcd(memory)`
-
-Interprets the memory value as Binary-Coded Decimal.
-
-* **Use case**: Games that store "10" lives as `0x10` instead of `0x0A`.
-
-`invert(memory)`
-
-Returns the bitwise inversion of the value (`~`).
-
-#### **Usage Example**:
+* **`delta(memory)`**: Value from the **previous frame**.
+* **`prior(memory)`**: Last **different** value.
+* **`bcd(memory)`**: Interprets value as Binary-Coded Decimal.
+* **`invert(memory)`**: Bitwise inversion (`~`).
 
 ```python
-from core.helpers import byte, prior, bcd
-
-lives = byte(0x1234)
-
 # Check if lives decreased
-lost_life = lives < prior(lives)
-
-# Compare BCD value
-has_10_lives = bcd(lives) == 10
+lives < prior(lives)
 ```
----
-### 4. Arithmetic & Pointers
+#
+### 5. Arithmetic & Pointers
 
-The `MemoryValue` objects support standard Python math operators. These are compiled into `AddSource` and `SubSource` chains.
+The `MemoryValue` objects support standard Python math operators.
 
 #### **Basic Math**
-
-You can add, subtract, multiply, and divide memory addresses and constants.
 
 ```python
 # Logic: (0xH100 + 0xH200) > 50
@@ -152,10 +119,9 @@ condition = (total_ammo > 50)
 
 #### **Pointer Chains** (`>>`)
 
-The right-shift operator (`>>`) is overloaded to handle **AddAddress** logic (pointers). It reads the value on the left, adds it as an offset to the value on the right.
+The right-shift operator (`>>`) is overloaded to handle **AddAddress** logic (pointers).
 
 * **Syntax**: `Base >> Offset`
-* **RA Logic**: `I:Base_Offset`
 
 ```python
 player_base = dword(0x0800)
@@ -164,30 +130,25 @@ offset_hp   = byte(0x0040)
 # Read [PlayerBase] + 0x40
 current_hp = (player_base >> offset_hp)
 ```
----
-### 5. **Bitwise Operations (Memory)**
+#
+### 6. **Bitwise Operations (Memory)**
 
 You can perform bitwise logic between memory addresses or constants.
 
 | Operator | Description | RA Operator |
 | --- | --- | --- |
-| `&` | 	Bitwise AND	 | `&` |
-| `^` | 	Bitwise XOR	 | `^` |
-| `*` | 	Multiply	 | `*` |
-| `/` | 	Divide	 | `/` |
-| `%` | 	Modulo	 | `%` |
+| `&` | Bitwise AND | `&` |
+| `^` | Bitwise XOR | `^` |
+| `*` | Multiply | `*` |
+| `/` | Divide | `/` |
 
 ```python
-flags = byte(0x5000)
-
-# Check if flags has bits 0x03 (0000 0011) set
-masked = (flags & 0x03)
-is_active = (masked == 0x03)
+# Check if flags has bits 0x03 set
+is_active = ((flags & 0x03) == 0x03)
 ```
----
-### 6. **Conditions, Flags & Logic**
 
-A `Condition` is generated when you compare a `MemoryValue` (e.g., `==`, `>`, `<=`). You can attach special behaviors to these conditions.
+#
+### 7. **Conditions, Flags & Logic**
 
 #### **Hit Counts (`.with_hits`)**
 
@@ -200,67 +161,44 @@ Requires the condition to be true `count` times for the achievement to trigger.
 
 #### **Applying Flags (`.with_flag`)**
 
-You can apply flags like `ResetIf`, `PauseIf`, or `Remember` directly to memory addresses, pointer expressions, or comparisons.
+Import from `core.constants`.
 
-**Available flags** (imported from `core.constants`):
-
-* `reset_if` / `Flag.RESET_IF`: Resets the achievement progress if true.
-* `pause_if` / `Flag.PAUSE_IF`: Pauses hit counting if true.
-* `trigger` / `Flag.TRIGGER`: Explicit trigger condition.
-* `measured` / `Flag.MEASURED`: Shows a progress bar in the overlay.
-* `remember` / `Flag.REMEMBER`: Stores the value for `recall()`.
+* `reset_if` / `Flag.RESET_IF`
+* `pause_if` / `Flag.PAUSE_IF`
+* `trigger` / `Flag.TRIGGER`
+* `measured` / `Flag.MEASURED`
+* `add_source` / `sub_source` (Math)
 
 #### **Logical Operators (Chain)**
 
-You can chain conditions using standard Python bitwise operators. This automatically generates `AND_NEXT` and `OR_NEXT` flags.
+You can chain conditions using Python bitwise operators. This automatically generates `AND_NEXT` and `OR_NEXT` flags.
 
 | Operator | Symbol | RA Flag | Description |
 | --- | --- | --- | --- |
 | **AND** | `&` | `AND_NEXT` | All conditions must be true. |
-| **OR** | `|` | `OR_NEXT` |
-| **NOT** | `~` | N/A | Inverts the comparison (`==` -> `!=`) and logic. |
-
-#### **Usage Examples**:
+| **OR** | ` ` | `OR_NEXT` |
+| **NOT** | `~` | N/A | Inverts comparison and logic. |
 
 ```python
-from core.constants import reset_if, measured, remember
-
-# 1. On a comparison (Standard)
-# Reset if player dies (Lives < Previous Lives)
-(lives < prior(lives)).with_flag(reset_if)
-
-# 2. Logic Chaining (New!)
-# (Is In Game) AND (Level Is 1)
-is_ingame = (byte(0x10) == 1)
-level_one = (byte(0x20) == 1)
-
-logic = is_ingame & level_one
-
-# 3. Complex Logic
-# NOT (Pause) AND (Health > 0)
-(~pause_active) & (health > 0)
+# (In Game) AND (Level 1)
+logic = (byte(0x10) == 1) & (byte(0x20) == 1)
 ```
----
-### 7. **Remember & Recall**
 
-This system allows you to store a memory value and compare it against itself later in the same frame evaluation.
+#
+### 8. **Remember & Recall**
 
-1. **Remember**: Use `.with_flag(Flag.REMEMBER)` on a condition (usually `addr`) to store its value.
-2. **Recall**: Use `recall()` helper to access that stored value.
+Store a memory value and compare it later in the same frame.
 
-#### **Example: Check if Ammo increased by exactly 5**
+1. **Remember**: `.with_flag(remember)` on a condition.
+2. **Recall**: `recall()` helper to access that stored value.
 
 ```python
-from core.helpers import recall
-from core.constants import Flag
+from core.helpers import recall, byte
+from core.constants import remember
 
-# 1. Store 'Ammo' into the Recall buffer
-store = Condition(mem_ammo).with_flag(Flag.REMEMBER)
-
-# 2. Check if Current Ammo == Stored Ammo + 5
-check = (mem_ammo == recall() + 5)
-
-achievement.add_core([store, check])
+# Check if Ammo increased
+logic = [
+    byte(0xAmmo).with_flag(remember),
+    byte(0xAmmo) > recall()
+]
 ```
-
-Logic generated: `K:0xH1234_0xH1234={recall}+5`
