@@ -4,7 +4,7 @@ from core.condition import Condition
 from models.achievement import Achievement
 from models.set import AchievementSet
 
-my_set = AchievementSet(game_id=23121, title="Imported Set")
+my_set = AchievementSet(game_id=1, title="Imported Set")
 
 # --- Pole Position ---
 # Logic: 0xH00009e=1_d0xH00009e=0_0xH000032=0_0xH0007dd=13
@@ -18,7 +18,6 @@ ach_555894 = Achievement(
     title="""Pole Position""",
     description="""Achieve your first Pole Position in any circuit""",
     points=1,
-    id=555894
 )
 ach_555894.add_core(ach_555894_logic)
 my_set.add_achievement(ach_555894)
@@ -35,7 +34,6 @@ ach_555895 = Achievement(
     title="""Pole to Win""",
     description="""Win a race after starting from Pole Position""",
     points=2,
-    id=555895
 )
 ach_555895.add_core(ach_555895_logic)
 my_set.add_achievement(ach_555895)
@@ -81,7 +79,6 @@ ach_555385 = Achievement(
     title="""First Upgrade""",
     description="""Buy your first car improvement""",
     points=1,
-    id=555385
 )
 ach_555385.add_core(ach_555385_logic)
 ach_555385.add_alt(ach_555385_alt1)
@@ -106,7 +103,6 @@ ach_554324 = Achievement(
     title="""Tifosi's Hero""",
     description="""Win a race at the Italian circuit""",
     points=1,
-    id=554324
 )
 ach_554324.add_core(ach_554324_logic)
 my_set.add_achievement(ach_554324)
@@ -123,7 +119,6 @@ ach_554334 = Achievement(
     title="""Silverstone Conqueror""",
     description="""Win a race at the Great Britain circuit""",
     points=1,
-    id=554334
 )
 ach_554334.add_core(ach_554334_logic)
 my_set.add_achievement(ach_554334)
@@ -140,7 +135,6 @@ ach_554325 = Achievement(
     title="""Autobahn Ace""",
     description="""Win a race at the German circuit""",
     points=1,
-    id=554325
 )
 ach_554325.add_core(ach_554325_logic)
 my_set.add_achievement(ach_554325)
@@ -157,7 +151,6 @@ ach_554333 = Achievement(
     title="""Samba Victory""",
     description="""Win a race at the Brazilian circuit""",
     points=2,
-    id=554333
 )
 ach_554333.add_core(ach_554333_logic)
 my_set.add_achievement(ach_554333)
@@ -174,7 +167,6 @@ ach_554329 = Achievement(
     title="""Imola Champion""",
     description="""Win a race at the San Marino circuit""",
     points=1,
-    id=554329
 )
 ach_554329.add_core(ach_554329_logic)
 my_set.add_achievement(ach_554329)
@@ -191,7 +183,6 @@ ach_554337 = Achievement(
     title="""The Matador""",
     description="""Win a race at the Spanish circuit""",
     points=2,
-    id=554337
 )
 ach_554337.add_core(ach_554337_logic)
 my_set.add_achievement(ach_554337)
@@ -208,7 +199,6 @@ ach_554327 = Achievement(
     title="""Estoril Excellence""",
     description="""Win a race at the Portuguese circuit""",
     points=1,
-    id=554327
 )
 ach_554327.add_core(ach_554327_logic)
 my_set.add_achievement(ach_554327)
@@ -225,7 +215,6 @@ ach_554328 = Achievement(
     title="""High-Altitude Hero""",
     description="""Win a race at the Mexican circuit""",
     points=1,
-    id=554328
 )
 ach_554328.add_core(ach_554328_logic)
 my_set.add_achievement(ach_554328)
@@ -242,7 +231,6 @@ ach_554331 = Achievement(
     title="""King of the Hungaroring""",
     description="""Win a race at the Hungarian circuit""",
     points=1,
-    id=554331
 )
 ach_554331.add_core(ach_554331_logic)
 my_set.add_achievement(ach_554331)
@@ -259,7 +247,6 @@ ach_554339 = Achievement(
     title="""Wall of Champions""",
     description="""Win a race at the Canadian circuit""",
     points=2,
-    id=554339
 )
 ach_554339.add_core(ach_554339_logic)
 my_set.add_achievement(ach_554339)
@@ -276,7 +263,6 @@ ach_554338 = Achievement(
     title="""Vive La Victoire!""",
     description="""Win a race at the French circuit""",
     points=2,
-    id=554338
 )
 ach_554338.add_core(ach_554338_logic)
 my_set.add_achievement(ach_554338)
@@ -293,7 +279,6 @@ ach_554332 = Achievement(
     title="""Master of Eau Rouge""",
     description="""Win a race at the Belgian circuit""",
     points=2,
-    id=554332
 )
 ach_554332.add_core(ach_554332_logic)
 my_set.add_achievement(ach_554332)
@@ -310,7 +295,6 @@ ach_554326 = Achievement(
     title="""Down Under Dominator""",
     description="""Win a race at the Australian circuit""",
     points=2,
-    id=554326
 )
 ach_554326.add_core(ach_554326_logic)
 my_set.add_achievement(ach_554326)
@@ -327,7 +311,6 @@ ach_554336 = Achievement(
     title="""The American Dream""",
     description="""Win a race at the USA circuit""",
     points=1,
-    id=554336
 )
 ach_554336.add_core(ach_554336_logic)
 my_set.add_achievement(ach_554336)
@@ -344,7 +327,6 @@ ach_554330 = Achievement(
     title="""Jewel in the Crown""",
     description="""Win a race at the Monaco circuit""",
     points=2,
-    id=554330
 )
 ach_554330.add_core(ach_554330_logic)
 my_set.add_achievement(ach_554330)
@@ -361,7 +343,6 @@ ach_554335 = Achievement(
     title="""Suzuka Samurai""",
     description="""Win a race at the Japanese circuit""",
     points=2,
-    id=554335
 )
 ach_554335.add_core(ach_554335_logic)
 my_set.add_achievement(ach_554335)
@@ -378,7 +359,6 @@ ach_555198 = Achievement(
     title="""Capital Injection""",
     description="""Start the game with a $10,000 bonus""",
     points=1,
-    id=555198
 )
 ach_555198.add_core(ach_555198_logic)
 my_set.add_achievement(ach_555198)
@@ -394,7 +374,6 @@ ach_555219 = Achievement(
     title="""Chief Engineer: Chassis""",
     description="""Purchase the Type 3 chassis upgrade""",
     points=5,
-    id=555219
 )
 ach_555219.add_core(ach_555219_logic)
 my_set.add_achievement(ach_555219)
@@ -410,7 +389,6 @@ ach_555218 = Achievement(
     title="""Chief Engineer: Gearing""",
     description="""Purchase the 7Speed transmission upgrade""",
     points=2,
-    id=555218
 )
 ach_555218.add_core(ach_555218_logic)
 my_set.add_achievement(ach_555218)
@@ -426,7 +404,6 @@ ach_555217 = Achievement(
     title="""Chief Engineer: Brakes""",
     description="""Purchase the Antilock brake upgrade""",
     points=2,
-    id=555217
 )
 ach_555217.add_core(ach_555217_logic)
 my_set.add_achievement(ach_555217)
@@ -442,7 +419,6 @@ ach_555216 = Achievement(
     title="""Chief Engineer: Suspension""",
     description="""Purchase the Active suspension upgrade""",
     points=1,
-    id=555216
 )
 ach_555216.add_core(ach_555216_logic)
 my_set.add_achievement(ach_555216)
@@ -458,7 +434,6 @@ ach_555215 = Achievement(
     title="""Chief Engineer: Diffuser""",
     description="""Purchase the Special Diffuser upgrade""",
     points=2,
-    id=555215
 )
 ach_555215.add_core(ach_555215_logic)
 my_set.add_achievement(ach_555215)
@@ -474,7 +449,6 @@ ach_555213 = Achievement(
     title="""Chief Engineer: Rear Wing""",
     description="""Purchase the HI D.F Rear Wing upgrade""",
     points=5,
-    id=555213
 )
 ach_555213.add_core(ach_555213_logic)
 my_set.add_achievement(ach_555213)
@@ -490,7 +464,6 @@ ach_555214 = Achievement(
     title="""Chief Engineer: Front Wing""",
     description="""Purchase the SPECIAL.W Front Wing upgrade""",
     points=2,
-    id=555214
 )
 ach_555214.add_core(ach_555214_logic)
 my_set.add_achievement(ach_555214)
@@ -506,7 +479,6 @@ ach_555212 = Achievement(
     title="""Chief Engineer: Tires""",
     description="""Purchase the Special Tires upgrade""",
     points=1,
-    id=555212
 )
 ach_555212.add_core(ach_555212_logic)
 my_set.add_achievement(ach_555212)
@@ -522,7 +494,6 @@ ach_555211 = Achievement(
     title="""Chief Engineer: Engine""",
     description="""Purchase the Homda V12 engine upgrade""",
     points=5,
-    id=555211
 )
 ach_555211.add_core(ach_555211_logic)
 my_set.add_achievement(ach_555211)
@@ -539,7 +510,6 @@ ach_555909 = Achievement(
     title="""Back of the Pack""",
     description="""Win a race after starting from 8th place""",
     points=10,
-    id=555909
 )
 ach_555909.add_core(ach_555909_logic)
 my_set.add_achievement(ach_555909)
@@ -558,7 +528,6 @@ ach_556004 = Achievement(
     title="""Interlagos Rain Master""",
     description="""Win a race in rainy conditions at the Brazilian circuit""",
     points=10,
-    id=556004
 )
 ach_556004.add_core(ach_556004_logic)
 my_set.add_achievement(ach_556004)
@@ -578,7 +547,6 @@ ach_555222 = Achievement(
     title="""Dancing in the Rain""",
     description="""Win any race in wet conditions after equipping RAIN tires""",
     points=2,
-    id=555222
 )
 ach_555222.add_core(ach_555222_logic)
 my_set.add_achievement(ach_555222)
@@ -599,7 +567,6 @@ ach_555221 = Achievement(
     title="""Untouchable""",
     description="""Win a race at the Monaco circuit with zero damage to your car""",
     points=25,
-    id=555221
 )
 ach_555221.add_core(ach_555221_logic)
 ach_555221.add_alt(ach_555221_alt1)
@@ -622,7 +589,6 @@ ach_555203 = Achievement(
     title="""Monaco Jackpot""",
     description="""Discover and play the secret slot machine minigame in Monaco""",
     points=1,
-    id=555203
 )
 ach_555203.add_core(ach_555203_logic)
 my_set.add_achievement(ach_555203)
@@ -641,7 +607,6 @@ ach_563375 = Achievement(
     title="""[VOID]Big Luck 777""",
     description="""Win the top prize Jackpot of 4000 on the slot machine in Monaco""",
     points=10,
-    id=563375
 )
 ach_563375.add_core(ach_563375_logic)
 my_set.add_achievement(ach_563375)
@@ -678,7 +643,6 @@ ach_555220 = Achievement(
     title="""The Perfect Machine""",
     description="""Purchase all available upgrades for an F1 car""",
     points=25,
-    id=555220
 )
 ach_555220.add_core(ach_555220_logic)
 ach_555220.add_alt(ach_555220_alt1)
@@ -698,7 +662,6 @@ ach_555915 = Achievement(
     title="""The Dream Comes True""",
     description="""Win the F1 World Championship for the first time""",
     points=25,
-    id=555915
 )
 ach_555915.add_core(ach_555915_logic)
 my_set.add_achievement(ach_555915)
@@ -716,7 +679,6 @@ ach_555384 = Achievement(
     title="""Perfect Season""",
     description="""Win every single race in a full F1 season""",
     points=50,
-    id=555384
 )
 ach_555384.add_core(ach_555384_logic)
 my_set.add_achievement(ach_555384)
@@ -730,7 +692,6 @@ ach_555916 = Achievement(
     title="""[VOID] Legend of the Asphalt""",
     description="""Win back-to-back Formula 1 World Championships""",
     points=0,
-    id=555916
 )
 ach_555916.add_core(ach_555916_logic)
 my_set.add_achievement(ach_555916)

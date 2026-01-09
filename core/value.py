@@ -157,11 +157,11 @@ class MemoryValue:
 
     def render(self) -> str:
         if self.mtype == MemoryType.RECALL:
-            return "{recall}"
+            return "0"
 
         hex_addr = f"{self.address:04x}"
         
-        if self.size.value.startswith('f') or self.size.value == 'K':
+        if self.size.value == 'K':
             return f"{self.mtype.value}{self.size.value}{hex_addr}"
         
         return f"{self.mtype.value}0x{self.size.value}{hex_addr}"
@@ -176,7 +176,7 @@ class ConstantValue:
 
     def render(self) -> str:
         if isinstance(self.value, float):
-            return f"f{self.value}"
+            return f"{self.value}" 
         return str(self.value)
     
     def with_flag(self, flag: Flag):
