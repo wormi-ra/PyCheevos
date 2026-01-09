@@ -156,11 +156,14 @@ class MemoryValue:
         return Condition(self, cmp, other)
 
     def render(self) -> str:
+        # CORREÇÃO 1: Recall DEVE retornar "0" (string) para o emulador
         if self.mtype == MemoryType.RECALL:
             return "0"
 
         hex_addr = f"{self.address:04x}"
         
+        # CORREÇÃO 2: Apenas 'K' (Bitcount) deve ficar sem 0x.
+        # Removemos a verificação de 'f' para que Floats ganhem 0x (ex: 0xfF1234)
         if self.size.value == 'K':
             return f"{self.mtype.value}{self.size.value}{hex_addr}"
         
@@ -169,6 +172,10 @@ class MemoryValue:
 class RecallValue(MemoryValue):
     def __init__(self):
         super().__init__(0, MemorySize.BIT8, MemoryType.RECALL)
+    
+    # Render específico para RecallValue caso chamado diretamente
+    def render(self) -> str:
+        return "0"
 
 class ConstantValue:
     def __init__(self, value: Union[int, float]):
@@ -176,7 +183,7 @@ class ConstantValue:
 
     def render(self) -> str:
         if isinstance(self.value, float):
-            return f"{self.value}" 
+            return f"f{self.value}"
         return str(self.value)
     
     def with_flag(self, flag: Flag):
