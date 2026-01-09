@@ -2,12 +2,13 @@ from typing import List, Union
 from core.condition import Condition
 
 class Achievement:
-    def __init__(self, title: str, description: str, points: int, id: int = 0, badge: str = "00000"):
+    def __init__(self, title: str, description: str, points: int, id: int = 0, badge: str = "00000", type: str = ""):
         self.id = id
         self.title = title
         self.description = description
         self.points = points
         self.badge = badge
+        self.type = type
         self.author = "PyCheevos"
         self.core: List[Condition] = []
         self.alts: List[List[Condition]] = []
@@ -59,5 +60,5 @@ class Achievement:
         
         return (
             f'{self.id}:"{full_mem}":"{self.title}":"{self.description}"'
-            f'::::{self.author}:{self.points}:::::{self.badge}'
+            f':::{self.type}:{self.author}:{self.points}:::::{self.badge}'
         )
