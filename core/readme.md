@@ -35,7 +35,6 @@ Sometimes you may need the integer value of the address back (e.g., for meta-pro
 ```python
 mem = byte(0x1234)
 print(mem.raw_address)  # Output: 4660 (0x1234)
-
 ```
 
 **Note**: Accessing `.raw_address` on a pointer chain or complex expression (like `base >> offset`) will raise an error, as those do not have a single static address.
@@ -73,7 +72,6 @@ from core.helpers import byte, word, bit0
 level_id = byte(0x00A1)
 timer = word(0x00B0)
 is_active = bit0(0x00F0)
-
 ```
 ---
 ### 2. **Constants & Safety**
@@ -94,7 +92,6 @@ from core.helpers import value, measured
 # Comparison with memory
 # Equivalent to: byte(0x1234) > 10
 byte(0x1234) > value(10) 
-
 ```
 ---
 ### 3. **Value Modifiers**
@@ -137,7 +134,6 @@ lost_life = lives < prior(lives)
 
 # Compare BCD value
 has_10_lives = bcd(lives) == 10
-
 ```
 ---
 ### 4. Arithmetic & Pointers
@@ -152,7 +148,6 @@ You can add, subtract, multiply, and divide memory addresses and constants.
 # Logic: (0xH100 + 0xH200) > 50
 total_ammo = byte(0x100) + byte(0x200)
 condition = (total_ammo > 50)
-
 ```
 
 #### **Pointer Chains** (`>>`)
@@ -168,7 +163,6 @@ offset_hp   = byte(0x0040)
 
 # Read [PlayerBase] + 0x40
 current_hp = (player_base >> offset_hp)
-
 ```
 ---
 ### 5. **Bitwise Operations (Memory)**
@@ -189,7 +183,6 @@ flags = byte(0x5000)
 # Check if flags has bits 0x03 (0000 0011) set
 masked = (flags & 0x03)
 is_active = (masked == 0x03)
-
 ```
 ---
 ### 6. **Conditions, Flags & Logic**
@@ -203,7 +196,6 @@ Requires the condition to be true `count` times for the achievement to trigger.
 ```python
 # Trigger only after being in this state for 60 frames (1 second)
 (state == 1).with_hits(60)
-
 ```
 
 #### **Applying Flags (`.with_flag`)**
@@ -247,7 +239,6 @@ logic = is_ingame & level_one
 # 3. Complex Logic
 # NOT (Pause) AND (Health > 0)
 (~pause_active) & (health > 0)
-
 ```
 ---
 ### 7. **Remember & Recall**
@@ -270,7 +261,6 @@ store = Condition(mem_ammo).with_flag(Flag.REMEMBER)
 check = (mem_ammo == recall() + 5)
 
 achievement.add_core([store, check])
-
 ```
 
 Logic generated: `K:0xH1234_0xH1234={recall}+5`
