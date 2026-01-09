@@ -215,11 +215,19 @@ def parse_value(val_str: str) -> str:
     val_str = val_str.replace(" ", "")
     suffix = ""
 
+    # 1. Extract Prefix (d, p, b, ~)
     if val_str and val_str[0] in PREFIXES:
         suffix = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
-    # floats
+    # 2. Recall handling (Correction)
+    # Detects {recall} and replaces it with recall() before anything else.
+    if "{recall}" in val_str:
+        val_str = val_str.replace("{recall}", "recall()")
+        # Returns within parentheses to apply the suffix (e.g., delta) to the result.
+        return f"({val_str}){suffix}"
+
+    # 3. Floats
     if val_str.startswith('f') and not any(val_str.startswith(code) for code in MEM_TYPE_KEYS):
         return f"float({val_str[1:]}){suffix}"
     
@@ -227,28 +235,30 @@ def parse_value(val_str: str) -> str:
         if s.isdigit(): return hex(int(s))
         return s
 
-    # memory reference (0x...)
+    # 4. Memory reference (0x...)
     if val_str.startswith("0x"):
         mem = val_str[2:]
         for code in MEM_TYPE_KEYS:
             if mem.startswith(code):
                 addr = mem[len(code):]
                 func = MEM_TYPES[code]
+                
                 if not addr: addr = "0"
 
+                # Bitmask logic (within the memory match)
                 if '&' in addr:
                     parts = addr.split('&')
                     addr_base = parts[0]
                     masks = parts[1:]
+
                     if not addr_base: addr_base = "0"
                     expr = f"{func}(0x{addr_base}){suffix}"
                     for m in masks:
                         expr = f"{expr} & value({to_hex(m)})"
                     return f"({expr})"
-                
                 return f"{func}(0x{addr}){suffix}"
         
-    # float memory types (fF, fB, etc.)
+    # 5. Float memory types (fF, fB, etc.)
     for code in MEM_TYPE_KEYS:
         if not code: continue 
         
@@ -257,11 +267,11 @@ def parse_value(val_str: str) -> str:
             func = MEM_TYPES[code]
             return f"{func}(0x{addr}){suffix}"
         
-    # numeric literals (hex or int)
+    # 6. Numeric literals (hex or int)
     if val_str.startswith("0x") or val_str.isdigit():
          return f"value({to_hex(val_str)}){suffix}"
     
-    # float literal
+    # 7. Float literal
     if val_str.replace('.', '', 1).isdigit():
          return f"float({val_str}){suffix}"
 
@@ -296,19 +306,24 @@ def parse_condition(cond_str: str):
     # comparison
     left_str, py_op, right_str = parse_comparison(cond_str)
 
-    # 
     if py_op is None:
         val = parse_value(left_str)
+
+        if not val or val == "0": 
+             return f"(value(0)){flag}"
         return f"({val}){flag}"
 
     # hits
-    right_str, hits = parse_hits(right_str) #type: ignore
+    right_str, hits = parse_hits(right_str)  # type: ignore
 
-    if right_str[0] == "f":
+    if right_str.startswith("f"):
         right_str = right_str[1:]
 
     left = parse_value(left_str)
     right = parse_value(right_str)
+
+    if not left: left = "value(0)"
+    if not right: right = "value(0)"
 
     is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
     is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
