@@ -72,7 +72,7 @@ def get_credentials():
     
     return user, password
 
-# --- BUSCA LOCAL ---
+# --- LOCAL SEARCH ---
 
 def find_all_candidates(base_path, game_id):
     print(f"[DEBUG] Scanning {base_path} by ID {game_id}...")
@@ -128,7 +128,26 @@ def fetch_server_data(game_id):
     
     return None
 
-# --- LOGIC PARSER ---
+# --- LOGIC PARSER (MODERNIZED) ---
+
+# Mapping: RA Flag -> Python Function (core.helpers)
+FLAG_WRAPPER_MAP = {
+    "R:": "reset_if",
+    "P:": "pause_if",
+    "M:": "measured",
+    "Q:": "measured_if",
+    "T:": "trigger",
+    "I:": "add_address",
+    "A:": "add_source",
+    "B:": "sub_source",
+    "C:": "add_hits",
+    "D:": "sub_hits",
+    "N:": "and_next",
+    "O:": "or_next",
+    "K:": "remember",
+    "Z:": "reset_next_if",
+    "G:": "measured_percent"
+}
 
 MEM_TYPES = {
     "M":  "bit0",
@@ -140,7 +159,7 @@ MEM_TYPES = {
     "S":  "bit6",
     "T":  "bit7",
     "H":  "byte",
-    "":  "word",
+    "":   "word",
     "W":  "tbyte",
     "X":  "dword",
     "I":  "word_be",
@@ -168,8 +187,6 @@ PREFIXES = {
     "~": "invert",
 }
 
-PREFIX_KEYS = tuple(PREFIXES)
-
 CMP_MAP = {
     "!=": "!=",
     ">=": ">=",
@@ -179,36 +196,7 @@ CMP_MAP = {
     "<":  "<",
 }
 
-CMP_KEYS = tuple(CMP_MAP)
-
-COND_PREFIXES = {
-    "":   "none",
-    "P:": "pause_if",
-    "R:": "reset_if",
-    "Z:": "reset_next_if",
-    "C:": "add_hits",
-    "D:": "sub_hits",
-    "A:": "add_source",
-    "B:": "sub_source",
-    "I:": "add_address",
-    "M:": "measured",
-    "T:": "trigger",
-    "N:": "and_next",
-    "O:": "or_next",
-    "G:": "measured_percent",
-    "Q:": "measured_if",
-    "K:": "remember",
-}
-
-COND_KEYS = sorted(COND_PREFIXES, key=len, reverse=True)
-
-def parse_condition_prefix(val: str):
-    for key in COND_KEYS:
-        if key and val.startswith(key):
-            return COND_PREFIXES[key], val[len(key):]
-
-    # no prefix
-    return "none", val
+CMP_KEYS = sorted(CMP_MAP.keys(), key=len, reverse=True)
 
 def parse_value(val_str: str) -> str:
     val_str = val_str.replace(" ", "")
@@ -239,32 +227,38 @@ def parse_value(val_str: str) -> str:
             result = val_str.replace("{recall}", "recall()")
 
         if wrap_func:
-            return f"{wrap_func}({result})"
+            return f"({result}).{wrap_func}()"
         return result
 
+    # Memory Access (0x...)
     if val_str.startswith("0x"):
-        match = re.match(r"0x([a-zA-Z])?([a-fA-F0-9]+)", val_str)
+        match = re.match(r"0x([a-zA-Z\s])?([a-fA-F0-9]+)", val_str)
         if match:
             prefix_type = match.group(1) if match.group(1) else ""
+            prefix_type = prefix_type.strip()
             addr = match.group(2)
+            
             func = MEM_TYPES.get(prefix_type, "word") 
             result = f"{func}(0x{addr})"
         else:
             result = "value(0)"
             wrap_func = ""
+            
     elif val_str.isdigit():
         result = f"value({int(val_str)})"
+        wrap_func = ""
+    elif val_str.replace('.', '', 1).isdigit():
+        result = f"float({val_str})"
         wrap_func = ""
     else:
         result = "value(0)"
         wrap_func = ""
 
     if wrap_func:
-        return f"{wrap_func}({result})"
+        return f"{result}.{wrap_func}()"
     return result
 
 def parse_hits(right_str: str):
-    """Corrigido para remover zeros à esquerda em hits como .000999"""
     if not right_str:
         return "0", ""
     
@@ -277,12 +271,6 @@ def parse_hits(right_str: str):
     
     return str(int(right_str)) if right_str.isdigit() else right_str, ""
 
-def parse_flag(cond_str: str):
-    flag, rest = parse_condition_prefix(cond_str)
-    if flag and flag != "none":
-        return f".with_flag({flag})", rest
-    return "", rest
-
 def parse_comparison(cond_str: str):
     for op in CMP_KEYS:
         if op in cond_str:
@@ -291,38 +279,49 @@ def parse_comparison(cond_str: str):
     return cond_str, None, None
 
 def parse_condition(cond_str: str):
-    # flag
-    flag, cond_str = parse_flag(cond_str)
-
-    # comparison
+    wrapper = None
+    
+    for flag_code, func_name in FLAG_WRAPPER_MAP.items():
+        if cond_str.startswith(flag_code):
+            wrapper = func_name
+            cond_str = cond_str[len(flag_code):]
+            break
+    
     left_str, py_op, right_str = parse_comparison(cond_str)
 
     if py_op is None:
         val = parse_value(left_str)
-
         if not val or val == "0": 
-             return f"(value(0)){flag}"
-        return f"({val}){flag}"
+             core_logic = "value(0)"
+        else:
+             core_logic = f"{val}"
+    else:
+        right_str, hits = parse_hits(right_str) # type: ignore
 
-    # hits
-    right_str, hits = parse_hits(right_str)  # type: ignore
+        if right_str.startswith("f"):
+            right_str = right_str[1:]
 
-    if right_str.startswith("f"):
-        right_str = right_str[1:]
+        left = parse_value(left_str)
+        right = parse_value(right_str)
 
-    left = parse_value(left_str)
-    right = parse_value(right_str)
+        if not left: left = "value(0)"
+        if not right: right = "value(0)"
 
-    if not left: left = "value(0)"
-    if not right: right = "value(0)"
+        is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
+        is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
 
-    is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
-    is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
+        if is_left_const and is_right_const:
+            core_logic = f"Condition({left}, '{py_op}', {right})"
+        else:
+            core_logic = f"({left} {py_op} {right})"
+        
+        if hits:
+            core_logic += hits
 
-    if is_left_const and is_right_const:
-        return f"Condition({left}, '{py_op}', {right}){flag}{hits}"
-
-    return f"({left} {py_op} {right}){flag}{hits}"
+    if wrapper:
+        return f"{wrapper}({core_logic})"
+    
+    return core_logic
 
 def parse_logic(mem_string):
     if not mem_string:
@@ -410,7 +409,8 @@ def extract_from_json_obj(content):
             'title': a.get('Title', 'Sem Título'),
             'desc': a.get('Description', ''),
             'points': a.get('Points', 0),
-            'mem': a.get('MemAddr', '')
+            'mem': a.get('MemAddr', ''),
+            'type': a.get('Type', '')
         })
     return data
 
@@ -429,8 +429,15 @@ def generate_script(game_id, achievements, source_name):
     lines.append("")
 
     for ach in achievements:
-        title = ach['title']
+        title = ach['title'].replace('"', '\\"')
+        desc = ach['desc'].replace('"', '\\"')
         ach_id = ach['id']
+        ach_type = ach.get('type', '')
+
+        type_str = ""
+        if ach_type == "progression": type_str = ", type=AchievementType.PROGRESSION"
+        elif ach_type == "win_condition": type_str = ", type=AchievementType.WIN_CONDITION"
+        elif ach_type == "missable": type_str = ", type=AchievementType.MISSABLE"
         
         lines.append(f"# --- {title} ---")
         lines.append(f"# Logic: {ach['mem']}")
@@ -452,8 +459,8 @@ def generate_script(game_id, achievements, source_name):
         
         lines.append(f"ach_{ach_id} = Achievement(")
         lines.append(f'    title="""{title}""",')
-        lines.append(f'    description="""{ach["desc"]}""",')
-        lines.append(f'    points={ach["points"]},')
+        lines.append(f'    description="""{desc}""",')
+        lines.append(f'    points={ach["points"]}{type_str},')
         lines.append(f'    id={ach_id}')
         lines.append(")")
         
@@ -461,6 +468,8 @@ def generate_script(game_id, achievements, source_name):
         for alt in alt_vars: lines.append(f"ach_{ach_id}.add_alt({alt})")
         lines.append(f"my_set.add_achievement(ach_{ach_id})")
         lines.append("")
+
+    lines.append("my_set.save()")
 
     out_dir = os.path.join(ROOT_DIR, 'scripts')
     if not os.path.exists(out_dir): os.makedirs(out_dir)
