@@ -2,7 +2,7 @@
 
 The Core module is the engine of PyCheevos. It handles memory addressing, variable types, arithmetic operations, and condition generation.
 
-While `models` (Achievement, Set) handle the "structure", `core` handles the "logic".
+While [`models`](https://github.com/CarlosNatanael/PyCheevos/tree/main/models) (Achievement, Set) handle the "structure", `core` handles the "logic".
 
 ### Table of Contents
 
@@ -20,11 +20,14 @@ While `models` (Achievement, Set) handle the "structure", `core` handles the "lo
     - [Pointer Chains](#pointer-chains-)
 6. [Bitwise Operations](#6-bitwise-operations-memory)
 7. [Conditions, Flags & Logic](#7-conditions-flags--logic)
+    - [Logic Helpers (New Syntax)](#logic-helpers-new-syntax)
     - [Hit Counts](#hit-counts-with_hits)
-    - [Applying Flags](#applying-flags-with_flag)
+    - [Applying Flags (Manual)](#applying-flags-manual)
     - [Logical Operators (Chain)](#logical-operators-chain)
 8. [Remember & Recall](#8-remember--recall)
-#
+
+---
+
 ### 1. **Memory Helpers**
 
 Located in `core.helpers`, these functions are the primary way to define memory addresses.
@@ -49,7 +52,9 @@ Located in `core.helpers`, these functions are the primary way to define memory 
 | `float32(addr)` | 32-bit Float | `fF...` |
 | `float32be(addr)` | 32-bit Float (Big Endian) | `fB...` |
 | `mbf32(addr)` | Microsoft Binary Format | `fM...` |
-#
+
+---
+
 ### 2. **Constants & Safety (`value`)**
 
 Python evaluates mathematical comparisons immediately (`0 == 0` becomes `True`). To treat constant numbers as Logic Objects (so they can accept flags or be part of a generated condition), use `value()`.
@@ -58,15 +63,16 @@ Python evaluates mathematical comparisons immediately (`0 == 0` becomes `True`).
 from core.helpers import value, measured
 
 # BAD: Python calculates this as False, logic is lost
-# (0 == 1).with_flag(measured)
+# measured(0 == 1)
 
 # GOOD: PyCheevos treats this as a Condition object
-(value(0) == value(1)).with_flag(measured)
+measured(value(0) == value(1))
 
 # Comparison with memory (Optional but recommended for clarity)
 byte(0x1234) > value(10) 
 ```
-#
+
+---
 
 ### 3. **Enums & Constants**
 
@@ -90,7 +96,9 @@ Used in `Leaderboard(format=...)`.
 * `LeaderboardFormat.MILLISECS`: Milliseconds.
 * `LeaderboardFormat.FRAMES`: Frames (converts to time).
 * `LeaderboardFormat.SCORE`: Score points (000000).
-#
+
+---
+
 ### 4. **Value Modifiers**
 
 These functions transform how the emulator reads a value relative to the previous frame.
@@ -104,7 +112,9 @@ These functions transform how the emulator reads a value relative to the previou
 # Check if lives decreased
 lives < prior(lives)
 ```
-#
+
+---
+
 ### 5. Arithmetic & Pointers
 
 The `MemoryValue` objects support standard Python math operators.
@@ -130,7 +140,9 @@ offset_hp   = byte(0x0040)
 # Read [PlayerBase] + 0x40
 current_hp = (player_base >> offset_hp)
 ```
-#
+
+---
+
 ### 6. **Bitwise Operations (Memory)**
 
 You can perform bitwise logic between memory addresses or constants.
@@ -147,8 +159,24 @@ You can perform bitwise logic between memory addresses or constants.
 is_active = ((flags & 0x03) == 0x03)
 ```
 
-#
+---
+
 ### 7. **Conditions, Flags & Logic**
+
+#### **Logic Helpers (New Syntax)**
+
+Instead of `.with_flag()`, you can now use wrapper functions. This is cleaner and easier to read.
+
+```python
+from core.helpers import reset_if, pause_if, measured
+
+reset_if(level_id != 1)
+pause_if(game_paused == 1)
+measured(coins)
+```
+
+**Available Helpers:**
+`reset_if`, `pause_if`, `measured`, `trigger`, `measured_if`, `add_source`, `sub_source`, `add_hits`, `sub_hits`, `add_address`, `remember`.
 
 #### **Hit Counts (`.with_hits`)**
 
@@ -159,15 +187,15 @@ Requires the condition to be true `count` times for the achievement to trigger.
 (state == 1).with_hits(60)
 ```
 
-#### **Applying Flags (`.with_flag`)**
+#### **Applying Flags (Manual)**
 
-Import from `core.constants`.
+If you prefer the old syntax, you must import the **Uppercased** constants from `core.constants`.
 
-* `reset_if` / `Flag.RESET_IF`
-* `pause_if` / `Flag.PAUSE_IF`
-* `trigger` / `Flag.TRIGGER`
-* `measured` / `Flag.MEASURED`
-* `add_source` / `sub_source` (Math)
+```python
+from core.constants import RESET_IF
+
+(level_id != 1).with_flag(RESET_IF)
+```
 
 #### **Logical Operators (Chain)**
 
@@ -176,7 +204,7 @@ You can chain conditions using Python bitwise operators. This automatically gene
 | Operator | Symbol | RA Flag | Description |
 | --- | --- | --- | --- |
 | **AND** | `&` | `AND_NEXT` | All conditions must be true. |
-| **OR** | ` ` | `OR_NEXT` |
+| **OR** | ` | ` | `OR_NEXT` |
 | **NOT** | `~` | N/A | Inverts comparison and logic. |
 
 ```python
@@ -184,21 +212,21 @@ You can chain conditions using Python bitwise operators. This automatically gene
 logic = (byte(0x10) == 1) & (byte(0x20) == 1)
 ```
 
-#
+---
+
 ### 8. **Remember & Recall**
 
 Store a memory value and compare it later in the same frame.
 
-1. **Remember**: `.with_flag(remember)` on a condition.
+1. **Remember**: `remember(condition)` function.
 2. **Recall**: `recall()` helper to access that stored value.
 
 ```python
-from core.helpers import recall, byte
-from core.constants import remember
+from core.helpers import recall, byte, remember
 
 # Check if Ammo increased
 logic = [
-    byte(0xAmmo).with_flag(remember),
+    remember(byte(0xAmmo)),
     byte(0xAmmo) > recall()
 ]
 ```
