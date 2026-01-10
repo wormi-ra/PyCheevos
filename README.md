@@ -4,7 +4,7 @@
 
 Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full power of the Python ecosystem (loops, functions, classes) to build complex achievement logic with clean, readable code.
 
-- **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, and arithmetic logic (`byte`, `word`, `value`, `delta`, `prior`). Now supports logical operators (`&`, `|`, `~`) for condition chaining.
+- **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) for clean condition chaining.
 
 - **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and Rich Presence.
 
@@ -14,9 +14,9 @@ Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full 
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
 
 ### Get Started
-Create a new .py file and import the library modules (`models` and `core`).  
+Create a new `.py` file and import the library modules (`models` and `core`).  
 
-Run your .py file, it should generate to a folder called `output` in the same directory as your .py file.  
+Run your script to generate an `output` folder containing your RA logic files (`[ID]-User.txt`).  
 You can change this output location by defining a path in the `.save()` function of `AchievementSet`.  
 
 - To import achievements, run `python utils/import_achievements.py`. It supports local files and server download.
@@ -26,7 +26,8 @@ You can change this output location by defining a path in the `.save()` function
 ```python
 from models.set import AchievementSet
 from models.achievement import Achievement
-from core.helpers import byte, prior, value
+from core.helpers import byte, prior, value, reset_if
+from core.constants import AchievementType
 
 # Initialize the set
 game_set = AchievementSet(game_id=1, title="Sonic the Hedgehog")
@@ -38,7 +39,7 @@ mem_zone  = byte(0xFE10)
 # Reusable Logic Function
 def got_rings(amount):
     """Triggers when ring count increases to or past 'amount'."""
-    # New Syntax: Use '&' for AND, '|' for OR, '~' for NOT
+    # Use '&' for AND, '|' for OR, '~' for NOT
     # Use value() to wrap constant numbers safely
     return (mem_rings >= value(amount)) & (prior(mem_rings) < value(amount))
 
@@ -47,13 +48,19 @@ ach = Achievement(
     title="Super Ring Collector", 
     description="Collect 1000 rings", 
     points=50, 
-    id=111001
+    id=111001,
+    type=AchievementType.PROGRESSION # Use Enum for safety
 )
 
 # Apply Logic
-# You can chain logic directly using operators
+# New Syntax: You can chain logic directly using operators
 ach.add_core(
     got_rings(1000) & (mem_zone == value(0)) # Must be in Green Hill
+)
+
+# Add reset logic using the new helper function
+ach.add_core(
+    reset_if(mem_rings == 0)
 )
 
 game_set.add_achievement(ach)
@@ -61,11 +68,13 @@ game_set.add_achievement(ach)
 # Generate the user file (1-User.txt)
 game_set.save()
 ```
-#
+
 ### User Repositories
-- [CarlosNatanael/RA-Scripts-py](https://github.com/CarlosNatanael/RA-Scripts-py)
-- [Player1041/PyCheevos-Scripts](https://github.com/Player1041/PyCheevos-Scripts)
-> [!IMPORTANT] 
+
+* [CarlosNatanael/RA-Scripts-py](https://github.com/CarlosNatanael/RA-Scripts-py)
+* [Player1041/PyCheevos-Scripts](https://github.com/Player1041/PyCheevos-Scripts)
+
+> [!IMPORTANT]
 > **Your repo here?** *Make a PR and add it!*
 
 ### Contributing
