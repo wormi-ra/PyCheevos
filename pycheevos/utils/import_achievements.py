@@ -419,11 +419,11 @@ def generate_script(game_id, achievements, source_name):
     print(f"\n[GENERATING] Processing {len(achievements)} achievements of {source_name}...\n")
     
     lines = []
-    lines.append("from core.helpers import *")
-    lines.append("from core.constants import *")
-    lines.append("from core.condition import Condition")
-    lines.append("from models.achievement import Achievement")
-    lines.append("from models.set import AchievementSet")
+    lines.append("from pycheevos.core.helpers import *")
+    lines.append("from pycheevos.core.constants import *")
+    lines.append("from pycheevos.core.condition import Condition")
+    lines.append("from pycheevos.models.achievement import Achievement")
+    lines.append("from pycheevos.models.set import AchievementSet")
     lines.append("")
     lines.append(f'my_set = AchievementSet(game_id={game_id}, title="Imported Set")')
     lines.append("")

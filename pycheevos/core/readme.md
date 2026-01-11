@@ -60,7 +60,7 @@ Located in `core.helpers`, these functions are the primary way to define memory 
 Python evaluates mathematical comparisons immediately (`0 == 0` becomes `True`). To treat constant numbers as Logic Objects (so they can accept flags or be part of a generated condition), use `value()`.
 
 ```python
-from core.helpers import value, measured
+from pycheevos.core.helpers import value, measured
 
 # BAD: Python calculates this as False, logic is lost
 # measured(0 == 1)
@@ -168,7 +168,7 @@ is_active = ((flags & 0x03) == 0x03)
 Instead of `.with_flag()`, you can now use wrapper functions. This is cleaner and easier to read.
 
 ```python
-from core.helpers import reset_if, pause_if, measured
+from pycheevos.core.helpers import reset_if, pause_if, measured
 
 reset_if(level_id != 1)
 pause_if(game_paused == 1)
@@ -192,7 +192,7 @@ Requires the condition to be true `count` times for the achievement to trigger.
 If you prefer the old syntax, you must import the **Uppercased** constants from `core.constants`.
 
 ```python
-from core.constants import RESET_IF
+from pycheevos.core.constants import RESET_IF
 
 (level_id != 1).with_flag(RESET_IF)
 ```
@@ -222,7 +222,7 @@ Store a memory value and compare it later in the same frame.
 2. **Recall**: `recall()` helper to access that stored value.
 
 ```python
-from core.helpers import recall, byte, remember
+from pycheevos.core.helpers import recall, byte, remember
 
 # Check if Ammo increased
 logic = [

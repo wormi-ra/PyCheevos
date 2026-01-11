@@ -287,7 +287,7 @@ def generate_script(game_id, notes, source):
     lines.append(f"# Code Notes for Game ID {game_id}")
     lines.append(f"# Source: {source}")
     lines.append("")
-    lines.append("from core.helpers import *")
+    lines.append("from pycheevos.core.helpers import *")
     lines.append("")
 
     used_names = {}

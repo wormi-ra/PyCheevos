@@ -24,10 +24,10 @@ You can change this output location by defining a path in the `.save()` function
 
 #### Small Demo
 ```python
-from models.set import AchievementSet
-from models.achievement import Achievement
-from core.helpers import byte, prior, value, reset_if
-from core.constants import AchievementType
+from pycheevos.models.set import AchievementSet
+from pycheevos.models.achievement import Achievement
+from pycheevos.core.helpers import byte, prior, value, reset_if
+from pycheevos.core.constants import AchievementType
 
 # Initialize the set
 game_set = AchievementSet(game_id=1, title="Sonic the Hedgehog")

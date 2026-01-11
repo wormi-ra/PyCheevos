@@ -31,7 +31,7 @@ The `AchievementSet` is the main container for your project. It holds all achiev
 
 #### **Initialization**
 ```python
-from models.set import AchievementSet
+from pycheevos.models.set import AchievementSet
 
 game_set = AchievementSet(game_id=12345, title="My Awesome Game")
 ```
@@ -58,8 +58,8 @@ Represents a single achievement. It manages the logic groups: Core (Required) an
 #### **Initialization**
 
 ```python
-from models.achievement import Achievement
-from core.constants import AchievementType
+from pycheevos.models.achievement import Achievement
+from pycheevos.core.constants import AchievementType
 
 ach = Achievement(
     title="Master of Unlocking",
@@ -108,8 +108,8 @@ Represents a leaderboard (Speedrun, High Score). It consists of four distinct lo
 #### **Initialization**
 
 ```python
-from models.leaderboard import Leaderboard
-from core.constants import LeaderboardFormat
+from pycheevos.models.leaderboard import Leaderboard
+from pycheevos.core.constants import LeaderboardFormat
 
 lb = Leaderboard(
     title="Green Hill Zone Act 1",
@@ -189,7 +189,7 @@ Handles the dynamic status display (Rich Presence) seen on the website.
 #### **Initialization**
 
 ```python
-from models.rich_presence import RichPresence
+from pycheevos.models.rich_presence import RichPresence
 rp = RichPresence()
 ```
 
@@ -265,8 +265,8 @@ You can create reusable classes for game entities (like Player, Enemy, Inventory
 Inherit from `GameObject` and use `self.offset()` to map memory relative to the object's base.
 
 ```python
-from models.generic import GameObject
-from core.helpers import byte, word
+from pycheevos.models.generic import GameObject
+from pycheevos.core.helpers import byte, word
 
 class Player(GameObject):
     def __init__(self, address):
@@ -284,7 +284,7 @@ class Player(GameObject):
 The logic handles both integers (Static RAM) and MemoryValues (Pointers) automatically.
 
 ```python
-from core.helpers import dword
+from pycheevos.core.helpers import dword
 
 # Scenario A: Player is always at 0x1000
 p1 = Player(0x1000)
@@ -310,10 +310,10 @@ Here is a complete example showing the Python code and the exact string PyCheevo
 #### **The Code**
 
 ```python
-from models.set import *
-from models.achievement import *
-from core.helpers import byte, trigger, reset_if
-from core.constants import AchievementType
+from pycheevos.models.set import *
+from pycheevos.models.achievement import *
+from pycheevos.core.helpers import byte, trigger, reset_if
+from pycheevos.core.constants import AchievementType
 
 def damage_car():
     mem_damage = byte(0x000076)
