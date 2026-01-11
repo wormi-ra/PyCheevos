@@ -1,6 +1,6 @@
 # @pycheevos/models
 
-The **Models** module defines the structural components of a RetroAchievements set. While `core` handles the logic (memory, conditions), `models` handles the containers that organize that logic into exportable files.
+The **Models** module defines the structural components of a RetroAchievements set. While [`core`](https://github.com/CarlosNatanael/PyCheevos/tree/main/core) handles the logic (memory, conditions), `models` handles the containers that organize that logic into exportable files.
 
 ### Table of Contents
 1. [AchievementSet](#1-achievementset)
@@ -23,7 +23,9 @@ The **Models** module defines the structural components of a RetroAchievements s
     - [Static vs Dynamic](#usage-static-vs-dynamic)
 6. [How it works](#6-under-the-hood-how-it-works)
     - [The Code](#the-code)
-#
+
+---
+
 ### 1. **AchievementSet**
 The `AchievementSet` is the main container for your project. It holds all achievements, leaderboards, and the rich presence script, and is responsible for exporting them to text files.
 
@@ -45,7 +47,10 @@ game_set = AchievementSet(game_id=12345, title="My Awesome Game")
 * `save(path=None)`: Exports `[ID]-User.txt` and `[ID]-Rich.txt`.
 * If `path` is not provided, defaults to an `output/` folder next to the script file.
 
-#
+
+
+---
+
 ### 2. **Achievement**
 
 Represents a single achievement. It manages the logic groups: Core (Required) and Alts (Alternative paths).
@@ -93,7 +98,9 @@ ach.add_alt(mem_health > 0)
 # Alt Group 2: Hardcore (No Cheats)
 ach.add_alt(mem_cheats == 0)
 ```
-#
+
+---
+
 ### 3. **Leaderboard**
 
 Represents a leaderboard (Speedrun, High Score). It consists of four distinct logic sections.
@@ -111,7 +118,6 @@ lb = Leaderboard(
     format=LeaderboardFormat.MILLISECS,
     lower_is_better=True
 )
-
 ```
 
 #### **Logic Components**
@@ -122,9 +128,7 @@ You can set these using lists of conditions or single expressions.
 * `set_cancel(conditions)`: **CANCEL**. If these become true during an attempt, it is invalidated.
 * `set_submit(conditions)`: **SUBMIT**. When these become true, the current value is sent to the server.
 * `set_value(conditions)`: **VALUE**. The memory expression that calculates the score/time.
-* **Note:** The condition passed here usually needs the `MEASURED` flag if it's not a raw value.
-
-
+* **Note:** The condition passed here usually needs the `measured()` helper if it's not a raw value.
 
 #### **Leaderboard Examples**
 
@@ -175,7 +179,9 @@ lb_score.set_submit(state == 3) # 3 = Game Over
 # Value: The raw score memory address
 lb_score.set_value(score)
 ```
-#
+
+---
+
 ### 4. **Rich Presence**
 
 Handles the dynamic status display (Rich Presence) seen on the website.
@@ -247,7 +253,9 @@ game_set.add_rich_presence(rp)
 * `@Value(address)`: Shows raw number.
 * `@Value(address*10)`: Shows scaled number.
 * `@Float1(address)`: Shows float with 1 decimal.
-#
+
+---
+
 ### 5. **Game Objects (OOP)**
 
 You can create reusable classes for game entities (like Player, Enemy, Inventory) using the `GameObject` base class. This allows you to define memory offsets once and reuse them for both static memory addresses and dynamic pointers.
@@ -289,7 +297,9 @@ p2 = Player(pointer)
 ach.add_core(p1.is_dead())
 ach.add_core(p2.coins >= 50)
 ```
-#
+
+---
+
 ### 6. **Under the Hood: How it works**
 
 Here is a complete example showing the Python code and the exact string PyCheevos generates for RetroAchievements.
@@ -302,9 +312,8 @@ Here is a complete example showing the Python code and the exact string PyCheevo
 ```python
 from models.set import *
 from models.achievement import *
-from core.helpers import *
-from core.constants import *
-
+from core.helpers import byte, trigger, reset_if
+from core.constants import AchievementType
 
 def damage_car():
     mem_damage = byte(0x000076)
@@ -321,7 +330,8 @@ def damage_car():
     cond_first = (mem_position == 0)
 
     # 3. Trigger: Event changed to 7 (Victory)
-    victory_cond = (mem_event == 7).with_flag(Flag.TRIGGER)
+    # New Syntax: using trigger() helper
+    victory_cond = trigger(mem_event == 7)
 
     # 4. Delta Check: Event was 13 previously
     delta_circuit = (mem_event.delta() == 13)
@@ -337,7 +347,7 @@ def damage_car():
     # 5. Reset: If Damage > 0
     # Uses Logical Operator '~' (NOT) for demonstration
     # Logic: Reset if (Damage == 0) is FALSE
-    cond_reset = (~(mem_damage == 0)).with_flag(Flag.RESET_IF)
+    cond_reset = reset_if(~(mem_damage == 0))
 
     alt_damage = [cond_reset]
 
@@ -377,7 +387,7 @@ This is the string written to `23121-User.txt`:
 | --- | --- | --- |
 | `(mem_green == 0).with_hits(1)` | `0xH00009e=0.1.` | Addr 0x9e must be 0 (Hit Count: 1). |
 | `mem_circuit == 14` | `0xH0013de=14` | Track ID must be 14 (Monaco). |
-| `.with_flag(Flag.TRIGGER)` | `T:0xH0007dd=7` | Trigger icon when Event is 7. |
+| `trigger(mem_event == 7)` | `T:0xH0007dd=7` | Trigger icon when Event is 7. |
 | `mem_event.delta() == 13` | `d0xH0007dd=13` | Previous Event value must be 13. |
 | `add_alt(...)` | `S` | Separator for Alternate Group. |
-| `~(mem_damage == 0)` | `R:0xH000076!=0` | Reset if Damage is NOT 0. |
+| `reset_if(~(mem_damage == 0))` | `R:0xH000076!=0` | Reset if Damage is NOT 0. |
