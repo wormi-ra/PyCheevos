@@ -9,6 +9,16 @@ Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full 
 - **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and Rich Presence.
 
 - **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains hybrid importers (`import_notes`, `import_achievements`) that can fetch data from local files or directly from the RetroAchievements server.
+#
+### Installation
+
+You can install PyCheevos directly from PyPI:
+
+```bash
+pip install pycheevos
+```
+> [!NOTE]
+> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.3`
 
 ### Usage
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
@@ -21,7 +31,7 @@ You can change this output location by defining a path in the `.save()` function
 
 - To import achievements, run `python utils/import_achievements.py`. It supports local files and server download.
 - To import notes, run `python utils/import_notes.py`. It automatically detects pointer hierarchies and fetches notes from the server if needed.
-
+#
 #### Small Demo
 ```python
 from pycheevos.models.set import AchievementSet
@@ -68,7 +78,7 @@ game_set.add_achievement(ach)
 # Generate the user file (1-User.txt)
 game_set.save()
 ```
-
+#
 ### User Repositories
 
 * [CarlosNatanael/RA-Scripts-py](https://github.com/CarlosNatanael/RA-Scripts-py)
