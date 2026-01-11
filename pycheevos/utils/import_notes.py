@@ -106,7 +106,10 @@ def parse_local_file(file_path):
                     if line.startswith('N0:'):
                         parts = line.split(':', 2)
                         if len(parts) >= 3:
-                            notes.append({"Address": parts[1], "Note": parts[2].strip().strip('"')})
+                            raw_note = parts[2].strip().strip('"')
+
+                            cleaned_note = raw_note.replace('\\r\\n', '\n').replace('\\n', '\n') 
+                            notes.append({"Address": parts[1], "Note": cleaned_note})
             else:
                 data = json.load(f)
                 if isinstance(data, list):
@@ -316,7 +319,7 @@ def generate_script(game_id, notes, source):
 
         if var_name in used_names:
             used_names[var_name] += 1
-            var_name = f"{var_name}_{addr}"
+            var_name = f"{var_name}_{used_names[var_name]}"
         else:
             used_names[var_name] = 1
 
