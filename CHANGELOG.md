@@ -1,6 +1,6 @@
 # Changelog
 
-# [0.0.4] - 12/01/2026
+## [0.0.4] - 12/01/2026
 ### Fixed
 - **Pip Installation:** Fixed `ModuleNotFoundError` when using the library installed via pip. Internal imports in `models` were converted to absolute paths (`from pycheevos.core...`) to ensure correct resolution.
 - **Note Parser:** Fixed an issue where literal `\r\n` escape sequences in note files were not parsed correctly, causing malformed variable names and merged comments.
@@ -29,3 +29,46 @@
 
 ### Changed
 - **Breaking Change:** Removed lowercase flag constants (e.g., `reset_if`) from `core.constants` to avoid naming conflicts with the new helper functions. Please use the new functions or the uppercase constants (`Flag.RESET_IF`).
+
+---
+
+## [0.0.2] - 08/01/2026
+
+**Hybrid Importers, Logical Operators, and Security Improvements**
+ 
+This update brings a complete overhaul to the import tools, making them hybrid (Local + Server). It also introduces a new fluent syntax for creating achievement logic and strengthens type safety in the Core.
+ 
+### New Features (Core)
+ 
+##### **Logical Operators (`ConditionList`):**
+* It's now possible to chain conditions using native Python operators:
+    * `&` (AND) generates the `AND_NEXT` flag.
+    * `|` (OR) generates the `OR_NEXT` flag.
+    * `~` (NOT) inverts comparison logic and toggles flags.
+* Implemented in `core/condition.py`.
+ 
+##### **Helper `value()`:**
+* New helper to encapsulate numeric constants, preventing Python from prematurely resolving comparisons (e.g., `0 == 0` becoming `True`).
+* Added to `core/helpers.py` and `core/value.py`.
+ 
+##### **Logic Validation:**
+* The `render()` method now prevents generating broken scripts if it detects flags like `Trigger`, `Reset`, or `Pause` without a valid comparison.
+ 
+### Import Tools (Utils)
+ 
+##### **Hybrid System (Local + Cloud):**
+* `import_notes.py` and `import_achievements.py` now first search for local files (`.txt`/`.json`). If not found, they connect to the RetroAchievements server (with secure login and credential caching) to download the data.
+ 
+##### **Notes Importer (`import_notes.py`):**
+* **Pointer Generation:** Detects offset hierarchy (`+`, `++`) in notes and automatically generates the pointer logic (`AddAddress`).
+* **Sanitization:** Automatic cleanup of variable names to ensure valid Python syntax.
+ 
+##### **Achievements Importer (`import_achievements.py`):**
+* **Robust Parser:** Enhanced support for Bitmasks (converts `addr&mask` to Hexadecimal) and Floats.
+* **Smart Translation:** Automatically converts "loose" numbers to `value()` and applies flags correctly.
+* Fixes empty address syntax errors (`0x` -> `0x0`).
+ 
+### Bug Fixes
+ 
+* Fixed `Achievement._flatten` to support nested lists (resolving the need to use `*` excessively).
+* Fixed the value parser to avoid confusing numeric inputs with memory types (Word).
