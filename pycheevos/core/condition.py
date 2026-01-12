@@ -2,13 +2,11 @@ from pycheevos.core.constants import Flag
 from pycheevos.core.value import MemoryValue, ConstantValue
 from typing import Union, Optional
 
-
 INVERT_MAP = {
     '=': '!=', '!=': '=',
     '<': '>=', '>=': '<',
     '>': '<=', '<=': '>'
 }
-
 
 class ConditionList(list):
     def __init__(self, items=None):
@@ -50,6 +48,11 @@ class ConditionList(list):
     def with_flag(self, flag: Flag):
         if self:
             self[-1] = self[-1].with_flag(flag)
+        return self
+
+    def with_hits(self, hits: int):
+        if self:
+            self[-1] = self[-1].with_hits(hits)
         return self
 
 class Condition:
@@ -109,7 +112,6 @@ class Condition:
                 )
 
     def render(self) -> str:
-
         self._validate() 
 
         parts = [self.flag.value]

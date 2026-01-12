@@ -1,17 +1,6 @@
 from typing import List, Union
 from pycheevos.core.constants import MemorySize, MemoryType, Flag
 
-class ConditionList(list):
-    def with_hits(self, hits: int):
-        if self:
-            self[-1].hits = hits
-        return self
-
-    def with_flag(self, flag: Flag):
-        if self:
-            self[-1].flag = flag
-        return self
-
 class MemoryExpression:
     def __init__(self, start_term, start_flag=Flag.ADD_SOURCE): 
         self.terms = [(start_term, start_flag)]
@@ -29,6 +18,7 @@ class MemoryExpression:
     def __sub__(self, other):
         new_expr = self._copy()
         new_expr.terms.append((other, Flag.SUB_SOURCE))
+        return new_expr 
     
     def __rshift__(self, other):
         new_expr = self._copy()
@@ -54,8 +44,9 @@ class MemoryExpression:
     def prior(self): return self._apply_modifier("prior")
     def bcd(self):   return self._apply_modifier("bcd")
 
-    def with_flag(self, flag: Flag) -> ConditionList:
-        from .condition import Condition
+    def with_flag(self, flag: Flag):
+        from .condition import Condition, ConditionList
+        
         conditions = []
         for i in range(len(self.terms)):
             val, term_flag = self.terms[i]
@@ -65,8 +56,8 @@ class MemoryExpression:
                 conditions.append(Condition(val, flag=term_flag))
         return ConditionList(conditions)
 
-    def _build_conditions(self, cmp: str, rvalue) -> ConditionList:
-        from .condition import Condition
+    def _build_conditions(self, cmp: str, rvalue):
+        from .condition import Condition, ConditionList
         from .value import ConstantValue
 
         conditions = []

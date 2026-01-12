@@ -4,6 +4,7 @@ import json
 import re
 import requests
 import getpass
+import hashlib
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, ROOT_DIR)
@@ -72,6 +73,30 @@ def get_credentials():
     
     return user, password
 
+# --- SYNC LOGIC (HASHING) ---
+
+def calculate_checksum(achievements_list):
+    """
+    Gera um hash MD5 único baseado no conteúdo das conquistas para detecção de mudanças.
+    """
+    standardized = []
+    for ach in achievements_list:
+        id_str = str(ach.get('id', ''))
+        
+        mem = str(ach.get('mem') or '').strip()
+        title = str(ach.get('title') or '').strip()
+        desc = str(ach.get('desc') or '').strip()
+        points = str(ach.get('points', 0))
+        type_str = str(ach.get('type') or '').strip()
+        
+        entry = f"{id_str}|{mem}|{title}|{desc}|{points}|{type_str}"
+        standardized.append(entry)
+    
+    standardized.sort()
+    
+    data_str = "||".join(standardized)
+    return hashlib.md5(data_str.encode('utf-8')).hexdigest()
+
 # --- LOCAL SEARCH ---
 
 def find_all_candidates(base_path, game_id):
@@ -128,147 +153,71 @@ def fetch_server_data(game_id):
     
     return None
 
-# --- LOGIC PARSER (MODERNIZED) ---
+# --- LOGIC PARSER ---
 
-# Mapping: RA Flag -> Python Function (core.helpers)
 FLAG_WRAPPER_MAP = {
-    "R:": "reset_if",
-    "P:": "pause_if",
-    "M:": "measured",
-    "Q:": "measured_if",
-    "T:": "trigger",
-    "I:": "add_address",
-    "A:": "add_source",
-    "B:": "sub_source",
-    "C:": "add_hits",
-    "D:": "sub_hits",
-    "N:": "and_next",
-    "O:": "or_next",
-    "K:": "remember",
-    "Z:": "reset_next_if",
-    "G:": "measured_percent"
+    "R:": "reset_if", "P:": "pause_if", "M:": "measured", "Q:": "measured_if",
+    "T:": "trigger", "I:": "add_address", "A:": "add_source", "B:": "sub_source",
+    "C:": "add_hits", "D:": "sub_hits", "N:": "and_next", "O:": "or_next",
+    "K:": "remember", "Z:": "reset_next_if", "G:": "measured_percent"
 }
 
 MEM_TYPES = {
-    "M":  "bit0",
-    "N":  "bit1",
-    "O":  "bit2",
-    "P":  "bit3",
-    "Q":  "bit4",
-    "R":  "bit5",
-    "S":  "bit6",
-    "T":  "bit7",
-    "H":  "byte",
-    "":   "word",
-    "W":  "tbyte",
-    "X":  "dword",
-    "I":  "word_be",
-    "J":  "tbyte_be",
-    "G":  "dword_be",
-    "L":  "low4",
-    "U":  "high4",
-    "K":  "bitcount",
-
-    # non 0x values
-    "fF": "float32",
-    "fB": "float32_be",
-    "fH": "double32",
-    "fI": "double32_be",
-    "fM": "mbf32",
-    "fL": "mbf32_le",
+    "M": "bit0", "N": "bit1", "O": "bit2", "P": "bit3", "Q": "bit4", "R": "bit5",
+    "S": "bit6", "T": "bit7", "H": "byte", "": "word", "W": "tbyte", "X": "dword",
+    "I": "word_be", "J": "tbyte_be", "G": "dword_be", "L": "low4", "U": "high4", "K": "bitcount",
+    "fF": "float32", "fB": "float32_be", "fH": "double32", "fI": "double32_be", "fM": "mbf32", "fL": "mbf32_le",
 }
-
 MEM_TYPE_KEYS = sorted(MEM_TYPES, key=len, reverse=True)
-
-PREFIXES = {
-    "d": "delta",
-    "p": "prior",
-    "b": "bcd",
-    "~": "invert",
-}
-
-CMP_MAP = {
-    "!=": "!=",
-    ">=": ">=",
-    "<=": "<=",
-    "=":  "==",
-    ">":  ">",
-    "<":  "<",
-}
-
+PREFIXES = {"d": "delta", "p": "prior", "b": "bcd", "~": "invert"}
+CMP_MAP = {"!=": "!=", ">=": ">=", "<=": "<=", "=": "==", ">": ">", "<": "<"}
 CMP_KEYS = sorted(CMP_MAP.keys(), key=len, reverse=True)
 
 def parse_value(val_str: str) -> str:
     val_str = val_str.replace(" ", "")
-    if not val_str:
-        return "value(0)"
+    if not val_str: return "value(0)"
     
     wrap_func = ""
     if val_str[0] in PREFIXES:
         wrap_func = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
-    # --- RECALL TREATMENT ---
     if "{recall}" in val_str:
         val_str = re.sub(r"0x[a-zA-Z]", "0x", val_str)
-
         op_match = re.search(r"(0x[a-fA-F0-9]+|[\d]+)\s*([\+\-\*\/])\s*\{recall\}", val_str)
-        
         if op_match:
             numero = op_match.group(1)
             operador = op_match.group(2)
-            
-            if numero.startswith("0x"):
-                val_obj = f"value({numero})"
-            else:
-                val_obj = f"value({int(numero)})"
+            val_obj = f"value({numero})" if numero.startswith("0x") else f"value({int(numero)})"
             result = f"recall() {operador} {val_obj}"
         else:
             result = val_str.replace("{recall}", "recall()")
+        return f"({result}).{wrap_func}()" if wrap_func else result
 
-        if wrap_func:
-            return f"({result}).{wrap_func}()"
-        return result
-
-    # Memory Access (0x...)
     if val_str.startswith("0x"):
         match = re.match(r"0x([a-zA-Z\s])?([a-fA-F0-9]+)", val_str)
         if match:
-            prefix_type = match.group(1) if match.group(1) else ""
-            prefix_type = prefix_type.strip()
+            prefix_type = match.group(1).strip() if match.group(1) else ""
             addr = match.group(2)
-            
             func = MEM_TYPES.get(prefix_type, "word") 
             result = f"{func}(0x{addr})"
         else:
             result = "value(0)"
-            wrap_func = ""
-            
     elif val_str.isdigit():
         result = f"value({int(val_str)})"
-        wrap_func = ""
     elif val_str.replace('.', '', 1).isdigit():
         result = f"float({val_str})"
-        wrap_func = ""
     else:
         result = "value(0)"
-        wrap_func = ""
 
-    if wrap_func:
-        return f"{result}.{wrap_func}()"
-    return result
+    return f"{result}.{wrap_func}()" if wrap_func else result
 
 def parse_hits(right_str: str):
-    if not right_str:
-        return "0", ""
-    
+    if not right_str: return "0", ""
     right_str = right_str.strip('.')
     match = re.search(r'(\d+)\.(\d+)', right_str)
     if match:
-        val = str(int(match.group(1)))
-        hits = str(int(match.group(2)))
-        return val, f".with_hits({hits})"
-    
+        return match.group(1), f".with_hits({match.group(2)})"
     return str(int(right_str)) if right_str.isdigit() else right_str, ""
 
 def parse_comparison(cond_str: str):
@@ -280,7 +229,6 @@ def parse_comparison(cond_str: str):
 
 def parse_condition(cond_str: str):
     wrapper = None
-    
     for flag_code, func_name in FLAG_WRAPPER_MAP.items():
         if cond_str.startswith(flag_code):
             wrapper = func_name
@@ -291,19 +239,13 @@ def parse_condition(cond_str: str):
 
     if py_op is None:
         val = parse_value(left_str)
-        if not val or val == "0": 
-             core_logic = "value(0)"
-        else:
-             core_logic = f"{val}"
+        core_logic = f"{val}" if val and val != "0" else "value(0)"
     else:
-        right_str, hits = parse_hits(right_str) # type: ignore
-
-        if right_str.startswith("f"):
-            right_str = right_str[1:]
-
+        right_str, hits = parse_hits(right_str)
+        if right_str.startswith("f"): right_str = right_str[1:]
+        
         left = parse_value(left_str)
         right = parse_value(right_str)
-
         if not left: left = "value(0)"
         if not right: right = "value(0)"
 
@@ -315,38 +257,21 @@ def parse_condition(cond_str: str):
         else:
             core_logic = f"({left} {py_op} {right})"
         
-        if hits:
-            core_logic += hits
+        if hits: core_logic += hits
 
-    if wrapper:
-        return f"{wrapper}({core_logic})"
-    
-    return core_logic
+    return f"{wrapper}({core_logic})" if wrapper else core_logic
 
 def parse_logic(mem_string):
-    if not mem_string:
-        return []
-
+    if not mem_string: return []
     groups = mem_string.split('S')
     parsed_groups = []
-
     for i, group in enumerate(groups):
         conditions = []
         for cond_str in group.split('_'):
-            if cond_str:
-                conditions.append(parse_condition(cond_str))
+            if cond_str: conditions.append(parse_condition(cond_str))
         name = "logic" if i == 0 else f"alt{i}"
         parsed_groups.append((name, conditions))
-
     return parsed_groups
-
-# --- SANITIZATION ---
-def sanitize_name(note_text):
-    clean = re.sub(r"[:/-]", "_", note_text)
-    clean = re.sub(r'[^a-zA-Z0-9_\s]', '', clean)
-    words = clean.lower().split()
-    clean = "_".join(words)
-    return clean[:65]
 
 # --- DATA PROCESSING ---
 
@@ -370,12 +295,12 @@ def extract_achievements(source_data, is_file=False):
                                     'mem': parts[1].strip('"'),
                                     'title': parts[2].strip('"'),
                                     'desc': parts[3].strip('"'),
-                                    'points': parts[5] if len(parts)>5 else "0"
+                                    'points': parts[5] if len(parts)>5 else "0",
+                                    'type': ""
                                 })
         except Exception as e:
             print(f"[ERROR] Failed to read file: {e}")
             return []
-
     else:
         return extract_from_json_obj(source_data)
 
@@ -386,37 +311,33 @@ def extract_from_json_obj(content):
     source_list = []
     
     if "Sets" in content and isinstance(content["Sets"], list):
-        for s in content["Sets"]:
-            source_list.extend(s.get("Achievements", []))
-
+        for s in content["Sets"]: source_list.extend(s.get("Achievements", []))
     elif "PatchData" in content and isinstance(content["PatchData"], list):
-        for s in content["PatchData"]:
-            source_list.extend(s.get("Achievements", []))
+        for s in content["PatchData"]: source_list.extend(s.get("Achievements", []))
     
     if not source_list and "Achievements" in content:
         source_list = content["Achievements"]
 
-    if "PatchData" in content:
+    if "PatchData" in content and isinstance(content["PatchData"], dict):
         patch = content["PatchData"]
         achievements = patch.get("Achievements", [])
         source_list.extend(achievements)
 
     for a in source_list:
-        if a.get('ID') == 101000001:
-            continue
+        if a.get('ID') == 101000001: continue
         data.append({
             'id': a.get('ID'),
-            'title': a.get('Title', 'Sem Título'),
-            'desc': a.get('Description', ''),
+            'title': a.get('Title', 'Sem Título') or '',
+            'desc': a.get('Description', '') or '',
             'points': a.get('Points', 0),
-            'mem': a.get('MemAddr', ''),
-            'type': a.get('Type', '')
+            'mem': a.get('MemAddr', '') or '',
+            'type': a.get('Type') or ''
         })
     return data
 
 def generate_script(game_id, achievements, source_name):
     if not achievements: return False
-    print(f"\n[GENERATING] Processing {len(achievements)} achievements of {source_name}...\n")
+    print(f"\n[GENERATING] Processing {len(achievements)} achievements from {source_name}...\n")
     
     lines = []
     lines.append("from pycheevos.core.helpers import *")
@@ -481,60 +402,76 @@ def generate_script(game_id, achievements, source_name):
     print(f"SUCCESS! Script generated: {out_file}")
     return True
 
-# --- MAIN LOOP ---
+# --- MAIN LOOP (SYNC ENABLED) ---
+
+def process_game(game_id):
+    if not game_id: return
+
+    racache = get_racache_path()
+    local_achs = []
+    local_source = "None"
+    
+    if racache:
+        candidates = find_all_candidates(racache, game_id)
+        for _, file_path, file_name in candidates:
+            parsed = extract_achievements(file_path, is_file=True)
+            if parsed:
+                local_achs = parsed
+                local_source = file_name
+                break
+
+    print(f"[SYNC] Checking server for updates on ID {game_id}...")
+    server_data = fetch_server_data(game_id)
+    server_achs = []
+    if server_data:
+        server_achs = extract_achievements(server_data, is_file=False)
+
+    final_achs = []
+    final_source = ""
+    status_msg = ""
+
+    if not local_achs and not server_achs:
+        print("[ERROR] No achievements found locally or on server.")
+        return
+
+    if local_achs and not server_achs:
+        final_achs = local_achs
+        final_source = local_source
+        status_msg = "Local Only (Offline)"
+    
+    elif server_achs and not local_achs:
+        final_achs = server_achs
+        final_source = "RA Server"
+        status_msg = "Server Only (New Import)"
+
+    else:
+        local_hash = calculate_checksum(local_achs)
+        server_hash = calculate_checksum(server_achs)
+
+        if local_hash == server_hash:
+            final_achs = server_achs
+            final_source = "RA Server (Synced)"
+            status_msg = "Synced with Local"
+        else:
+            final_achs = local_achs
+            final_source = local_source
+            status_msg = "Local Modifications Detected (Unsynced)"
+            
+            diff = len(local_achs) - len(server_achs)
+            if diff != 0: status_msg += f" [Count Diff: {diff:+d}]"
+
+    # 4. Gera o Script
+    print(f"\n[RESULT] Using: {final_source}")
+    print(f"[STATUS] {status_msg}")
+    
+    generate_script(game_id, final_achs, final_source)
 
 def main():
     print("--- PyCheevos Achievement Importer ---")
-    
     while True:
         game_id = input("\nEnter the Game ID (or 'q' to exit): ").strip()
         if game_id.lower() == 'q': break
-        if not game_id: continue
-
-        # Local Search
-        racache = get_racache_path()
-        candidates = []
-        if racache:
-            candidates = find_all_candidates(racache, game_id)
-        
-        success = False
-        
-        # Attempts to process local files
-        for prio, file_path, file_name in candidates:
-            achievements = extract_achievements(file_path, is_file=True)
-            if achievements:
-                print(f"[LOCAL] Success! {len(achievements)} achievements in {file_name}")
-                if generate_script(game_id, achievements, file_name):
-                    success = True
-                    break
-            else:
-                print(f"[LOCAL] Empty or invalid file: {file_name}")
-
-        if success: break
-
-        # Fallback Server
-        print(f"\n[INFO] No local achievements found for ID {game_id}.")
-        print("Options:")
-        print("  [1] Try another ID")
-        print("  [2] Download from RetroAchievements (Login required)")
-        print("  [3] Exit")
-        
-        choice = input("Choice: ").strip()
-        if choice == '3' or choice.lower() == 'q': break
-        if choice == '1': continue
-        
-        if choice == '2':
-            server_data = fetch_server_data(game_id)
-            if server_data:
-                achievements = extract_achievements(server_data, is_file=False)
-                if achievements:
-                    if generate_script(game_id, achievements, "RA Server"):
-                        break
-                else:
-                    print("No achievements found in the server data.")
-            else:
-                print("\n[NOTICE] Unable to download from server.")
-                input("Press Enter to try again...")
+        process_game(game_id)
 
 if __name__ == "__main__":
     main()

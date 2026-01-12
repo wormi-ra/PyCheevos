@@ -1,3 +1,4 @@
+from pycheevos.utils.sync import calculate_checksum
 import os
 import sys
 import json
@@ -404,58 +405,75 @@ def generate_script(game_id, notes, source):
     print(f"Total number of addresses mapped: {count}")
     return True
 
+
+def process_game(game_id):
+    if not game_id: return
+
+    racache = get_racache_path()
+    local_notes = []
+    local_source = "None"
+    
+    if racache:
+        candidates = find_all_candidates(racache, game_id)
+        for _, file_path, file_name in candidates:
+            parsed = parse_local_file(file_path)
+            if parsed:
+                local_notes = parsed
+                local_source = file_name
+                break
+
+    print(f"[SYNC] Checking server for updates on ID {game_id}...")
+    server_notes = fetch_server_notes(game_id)
+
+    final_notes = []
+    final_source = ""
+    status_msg = ""
+
+    if not local_notes and not server_notes:
+        print("[ERROR] No data found locally or on server.")
+        return
+
+    if local_notes and not server_notes:
+        final_notes = local_notes
+        final_source = local_source
+        status_msg = "Local Only (Offline)"
+    
+    elif server_notes and not local_notes:
+        final_notes = server_notes
+        final_source = "RA Server"
+        status_msg = "Server Only (New Import)"
+
+    else:
+        local_hash = calculate_checksum(local_notes)
+        server_hash = calculate_checksum(server_notes)
+
+        if local_hash == server_hash:
+            final_notes = server_notes
+            final_source = "RA Server (Synced)"
+            status_msg = "Synced with Local"
+        else:
+            final_notes = local_notes
+            final_source = local_source
+            status_msg = "Local Modifications Detected (Unsynced)"
+            
+            diff = len(local_notes) - len(server_notes)
+            if diff != 0: status_msg += f" [Diff: {diff:+d} notes]"
+
+    print(f"\n[RESULT] Using: {final_source}")
+    print(f"[STATUS] {status_msg}")
+    
+    generate_script(game_id, final_notes, final_source)
+
 # --- MAIN LOOP ---
 
 def main():
-    print("--- PyCheevos Note Importer (Hybrid v3) ---")
-    
+    print("--- PyCheevos Note Importer ---")
     while True:
         print("")
         game_id = input("Enter Game ID (or 'q' to quit): ").strip()
         if game_id.lower() == 'q': break
-        if not game_id: continue
-
-        racache = get_racache_path()
-        candidates = []
-        if racache:
-            candidates = find_all_candidates(racache, game_id)
         
-        notes_found = False
-        
-        for prio, file_path, file_name in candidates:
-            notes = parse_local_file(file_path)
-            
-            if notes:
-                print(f"[LOCAL] Successfully read {len(notes)} notes from {file_name}")
-                if generate_script(game_id, notes, file_name):
-                    notes_found = True
-                    break
-            else:
-                print(f"\n[LOCAL] File found but empty/invalid: {file_name}")
-
-        if notes_found:
-            break
-
-        # Fallback to Server
-        print(f"\n[INFO] No usable local notes found for ID {game_id}.")
-        print("Options:")
-        print("  [1] Try another Game ID")
-        print("  [2] Download from RetroAchievements (Login required)")
-        print("  [3] Quit")
-        
-        choice = input("Choice: ").strip()
-        
-        if choice == '3' or choice.lower() == 'q': break
-        if choice == '1': continue
-        
-        if choice == '2':
-            server_notes = fetch_server_notes(game_id)
-            if server_notes:
-                if generate_script(game_id, server_notes, "RA Server"):
-                    break
-            else:
-                print("\n[WARN] Could not fetch notes from server.")
-                input("Press Enter to try again...")
+        process_game(game_id)
 
 if __name__ == "__main__":
     main()
