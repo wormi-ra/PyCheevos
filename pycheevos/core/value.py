@@ -1,5 +1,5 @@
 from typing import List, Union
-from .constants import MemorySize, MemoryType, Flag
+from pycheevos.core.constants import MemorySize, MemoryType, Flag
 
 class ConditionList(list):
     def with_hits(self, hits: int):

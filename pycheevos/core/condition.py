@@ -1,6 +1,6 @@
-from .constants import Flag
-from .value import MemoryValue, ConstantValue
-from typing import Union, Optional, List
+from pycheevos.core.constants import Flag
+from pycheevos.core.value import MemoryValue, ConstantValue
+from typing import Union, Optional
 
 
 INVERT_MAP = {

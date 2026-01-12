@@ -1,7 +1,7 @@
 from typing import List, Union, Dict
-from core.condition import Condition
-from core.value import MemoryValue
-from core.constants import LeaderboardFormat
+from pycheevos.core.condition import Condition
+from pycheevos.core.value import MemoryValue
+from pycheevos.core.constants import LeaderboardFormat
 
 class RichPresence:
     def __init__(self):

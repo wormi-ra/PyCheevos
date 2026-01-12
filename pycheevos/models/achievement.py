@@ -1,6 +1,6 @@
 from typing import List, Union
-from core.condition import *
-from core.constants import *
+from pycheevos.core.condition import Condition
+from pycheevos.core.constants import AchievementType
 
 class Achievement:
     def __init__(self, title: str, description: str, points: int, id: int = 0, badge: str = "00000", type: Union[AchievementType, str] = AchievementType.STANDARD):

@@ -1,6 +1,6 @@
 from typing import List, Union
-from core.condition import Condition
-from core.constants import LeaderboardFormat
+from pycheevos.core.condition import Condition
+from pycheevos.core.constants import LeaderboardFormat
 
 class Leaderboard:
     def __init__(

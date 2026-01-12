@@ -4,11 +4,9 @@
 
 Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full power of the Python ecosystem (loops, functions, classes) to build complex achievement logic with clean, readable code.
 
-- **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) for clean condition chaining.
-
-- **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and Rich Presence.
-
-- **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains hybrid importers (`import_notes`, `import_achievements`) that can fetch data from local files or directly from the RetroAchievements server.
+* **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) for clean condition chaining.
+* **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and Rich Presence.
+* **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains hybrid importers (`import_notes`, `import_achievements`) that can fetch data from local files or directly from the RetroAchievements server.
 #
 ### Installation
 
@@ -18,19 +16,31 @@ You can install PyCheevos directly from PyPI:
 pip install pycheevos
 ```
 > [!NOTE]
-> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.3`
+> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.4`
 
 ### Usage
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
 
 ### Get Started
-Create a new `.py` file and import the library modules (`models` and `core`).  
+Create a new `.py` file and import the library modules (`models` and `core`).
 
-Run your script to generate an `output` folder containing your RA logic files (`[ID]-User.txt`).  
-You can change this output location by defining a path in the `.save()` function of `AchievementSet`.  
+Run your script to generate an `output` folder containing your RA logic files (`[ID]-User.txt`).    
+You can change this output location by defining a path in the `.save()` function of `AchievementSet`.
 
-- To import achievements, run `python utils/import_achievements.py`. It supports local files and server download.
-- To import notes, run `python utils/import_notes.py`. It automatically detects pointer hierarchies and fetches notes from the server if needed.
+#### Using the Importers
+
+To run the importer tools installed via pip, use the `-m` flag:
+
+* **To import achievements**:
+```bash
+python -m pycheevos.utils.import_achievements
+```
+*(Supports local files and server download)*
+* **To import notes**:
+```bash
+python -m pycheevos.utils.import_notes
+```
+*(Automatically detects pointer hierarchies and fetches notes from the server if needed)*
 #
 #### Small Demo
 ```python

@@ -1,5 +1,5 @@
-from .value import MemoryValue, RecallValue, ConstantValue
-from .constants import MemorySize, Flag
+from pycheevos.core.value import MemoryValue, RecallValue, ConstantValue
+from pycheevos.core.constants import MemorySize, Flag
 
 def byte(address: int) -> MemoryValue: return MemoryValue(address, MemorySize.BIT8)
 def word(address: int) -> MemoryValue: return MemoryValue(address, MemorySize.BIT16)

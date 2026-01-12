@@ -1,8 +1,8 @@
 from typing import List, Optional
 from pathlib import Path
-from .achievement import Achievement
-from .leaderboard import Leaderboard
-from .rich_presence import RichPresence
+from pycheevos.models.achievement import Achievement
+from pycheevos.models.leaderboard import Leaderboard
+from pycheevos.models.rich_presence import RichPresence
 
 class AchievementSet:
     def __init__(self, game_id: int, title: str):
