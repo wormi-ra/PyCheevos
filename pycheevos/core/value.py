@@ -160,6 +160,12 @@ class MemoryValue:
         if size_str.startswith('f') or size_str == 'K':
             return f"{self.mtype.value}{size_str}{hex_addr}"
         return f"{self.mtype.value}0x{size_str}{hex_addr}"
+    
+    def __str__(self):
+        return self.render()
+    
+    def __repr__(self):
+        return self.render()
 
 class RecallValue(MemoryValue):
     def __init__(self):
@@ -167,6 +173,12 @@ class RecallValue(MemoryValue):
     
     def render(self) -> str:
         return "0"
+    
+    def __str__(self):
+        return self.render()
+    
+    def __repr__(self):
+        return self.render()
 
 class ConstantValue:
     def __init__(self, value: Union[int, float]):
@@ -191,3 +203,9 @@ class ConstantValue:
     def _cond(self, cmp, other):
         from .condition import Condition
         return Condition(self, cmp, other)
+    
+    def __str__(self):
+        return self.render()
+    
+    def __repr__(self):
+        return self.render()
