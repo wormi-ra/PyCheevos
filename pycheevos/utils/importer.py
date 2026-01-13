@@ -1,5 +1,5 @@
 from pycheevos.utils import import_notes
-from pycheevos.utils import import_achievements
+from pycheevos.utils import test_importer
 import sys
 import os
 
@@ -29,14 +29,14 @@ def main():
     
     elif choice == '2':
         print("\n --- Starting Achievements Import ---")
-        import_achievements.process_game(game_id)
+        test_importer.process_game(game_id)
 
     elif choice == '3':
         print("\n--- STEP 1: Notes ---")
         import_notes.process_game(game_id)
 
         print("\n--- STEP 2: Achievements ---")
-        import_achievements.process_game(game_id)
+        test_importer.process_game(game_id)
     
     else:
         print("Invalid option")
