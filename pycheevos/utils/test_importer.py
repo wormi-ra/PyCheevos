@@ -59,7 +59,7 @@ CMP_KEYS = sorted(CMP_MAP.keys(), key=len, reverse=True)
 
 ADDRESS_MAP = {}
 
-def parse_value(val_str: str) -> str:
+def parse_value(val_str: str, raw_hex: bool = False) -> str:
     val_str = val_str.replace(" ", "")
     if not val_str: return "value(0)"
     
@@ -81,14 +81,12 @@ def parse_value(val_str: str) -> str:
             result = val_str.replace("{recall}", "recall()")
         return f"({result}).{wrap_func}()" if wrap_func else result
 
-    # Lógica Principal de Endereços
     if val_str.startswith("0x"):
         match = re.match(r"0x([a-zA-Z\s])?([a-fA-F0-9]+)", val_str)
         if match:
             raw_addr = match.group(2).lstrip('0')
             if not raw_addr: raw_addr = "0"
             raw_addr = "0x" + raw_addr
-            
             if raw_addr in ADDRESS_MAP:
                 variable_name = ADDRESS_MAP[raw_addr]
                 result = variable_name
@@ -98,9 +96,13 @@ def parse_value(val_str: str) -> str:
                 result = f"{func}(0x{match.group(2)})"
         else:
             result = "value(0)"
-            
     elif val_str.isdigit():
-        result = f"value({int(val_str)})"
+        val_int = int(val_str)
+        if raw_hex:
+            result = hex(val_int)
+        else:
+            result = f"value({hex(val_int)})"
+        
     elif val_str.replace('.', '', 1).isdigit():
         result = f"float({val_str})"
     else:
@@ -111,9 +113,10 @@ def parse_value(val_str: str) -> str:
 def parse_hits(right_str: str):
     if not right_str: return "0", ""
     right_str = right_str.strip('.')
-    match = re.search(r'(\d+)\.(\d+)', right_str)
+    match = re.search(r'((?:0x)?[\da-fA-F]+)\.(\d+)', right_str)
     if match:
-        return match.group(1), f".with_hits({match.group(2)})"
+        hits_val = int(match.group(2))
+        return match.group(1), f".with_hits({hits_val})"
     return str(int(right_str)) if right_str.isdigit() else right_str, ""
 
 def parse_comparison(cond_str: str):
@@ -130,27 +133,27 @@ def parse_condition(cond_str: str):
             wrapper = func_name
             cond_str = cond_str[len(flag_code):]
             break
-    left_str, py_op, rigth_str = parse_comparison(cond_str)
+    left_str, py_op, right_str = parse_comparison(cond_str)
+
     if py_op is None:
         val = parse_value(left_str)
         core_logic = f"{val}" if val and val != "0" else "value(0)"
     else:
-        rigth_str, hits = parse_hits(rigth_str)
-        if rigth_str.startswith("f"): rigth_str = rigth_str[1:]
+        right_str, hits = parse_hits(right_str)
+        if right_str.startswith("f"): right_str = right_str[1:]
 
         left = parse_value(left_str)
-        right = parse_value(rigth_str)
+        use_raw_right = not left.startswith("float(")
+        right = parse_value(right_str, raw_hex=use_raw_right)
+        
         if not left: left = "value(0)"
         if not right: right = "value(0)"
 
-        is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
-        is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
-
         core_logic = f"({left} {py_op} {right})"
-
+        
         if hits: core_logic += hits
 
-    return f"{wrapper} ({core_logic})" if wrapper else core_logic
+    return f"{wrapper}({core_logic})" if wrapper else core_logic
 
 def parse_logic(mem_string):
     if not mem_string: return []
