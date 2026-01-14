@@ -68,7 +68,6 @@ def parse_value(val_str: str, raw_hex: bool = False) -> str:
         wrap_func = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
-    # Lógica de Recall
     if "{recall}" in val_str:
         val_str = re.sub(r"0x[a-zA-Z]", "0x", val_str)
         op_match = re.search(r"(0x[a-fA-F0-9]+|[\d]+)\s*([\+\-\*\/])\s*\{recall\}", val_str)
@@ -181,7 +180,7 @@ def build_address_map(notes):
         if not text or not addr: continue
         try:
             int_addr = int(addr, 16) if str(addr).startswith("0x") else int(addr)
-            norm_addr = hex(int_addr) # '0x10'
+            norm_addr = hex(int_addr)
         except:
             continue
 
@@ -272,8 +271,6 @@ def generate_script(game_id, achievements, source_name):
     lines.append("from pycheevos.core.condition import Condition")
     lines.append("from pycheevos.models.achievement import Achievement")
     lines.append("from pycheevos.models.set import AchievementSet")
-    
-    # --- SEAN'S IDEA: Importa o arquivo de notas gerado ---
     lines.append(f"from notes_{game_id} import *") 
     lines.append("")
     
@@ -294,7 +291,6 @@ def generate_script(game_id, achievements, source_name):
         lines.append(f"# --- {title} ---")
         lines.append(f"# Logic: {ach['mem']}")
         
-        # Parse Logic usa o ADDRESS_MAP agora
         logic_groups = parse_logic(ach['mem'])
         
         core_var = ""
@@ -341,10 +337,9 @@ def process_game(game_id):
 
     racache = get_racache_path()
     
-    # --- PASSO 1: CARREGAR NOTAS (Necessário para o mapeamento) ---
+    # --- PASSO 1: CARREGAR NOTAS  ---
     print("\n--- STEP 1: Loading Notes for Variable Mapping ---")
     
-    # Tenta local
     local_notes = []
     if racache:
         candidates = import_notes.find_all_candidates(racache, game_id)
@@ -354,31 +349,29 @@ def process_game(game_id):
                 local_notes = parsed
                 break
     
-    # Tenta servidor
     server_notes = import_notes.fetch_server_notes(game_id)
-    
-    # Decide qual usar (mesma lógica do import_notes)
+
     final_notes = []
     if local_notes and not server_notes:
         final_notes = local_notes
     elif server_notes and not local_notes:
         final_notes = server_notes
     elif local_notes and server_notes:
-        # Prioridade local para mapeamento também, para ser consistente
         final_notes = local_notes
     
     if final_notes:
         build_address_map(final_notes)
+        print("\n[SMART IMPORTER] Auto-generating notes script...")
+        import_notes.generate_script(game_id, final_notes, "Smart Importer Sync")
     else:
         print("[WARNING] No notes found. Script will use raw byte(0x...) addresses.")
-
+        
     # --- PASSO 2: CARREGAR CONQUISTAS ---
     print("\n--- STEP 2: Loading Achievements ---")
     local_achs = []
     local_source = "None"
     
     if racache:
-        # Reutiliza find_all_candidates do achievements (é diferente do notes)
         candidates = find_all_candidates(racache, game_id)
         for _, file_path, file_name in candidates:
             parsed = extract_achievements(file_path, is_file=True)
@@ -427,7 +420,6 @@ def process_game(game_id):
             diff = len(local_achs) - len(server_achs)
             if diff != 0: status_msg += f" [Count Diff: {diff:+d}]"
 
-    # 4. Gera o Script
     print(f"\n[RESULT] Using: {final_source}")
     print(f"[STATUS] {status_msg}")
     
