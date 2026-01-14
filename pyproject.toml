@@ -28,3 +28,7 @@ requires-python = ">=3.7"
 
 [project.scripts]
 pycheevos-import = "pycheevos.utils.importer:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pycheevos*"]
