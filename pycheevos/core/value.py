@@ -189,6 +189,20 @@ class ConstantValue:
             return f"f{self.value}"
         return str(self.value)
     
+    def delta(self):
+        return self
+    
+    def prior(self):
+        return self
+    
+    def bcd(self):
+        return self
+    
+    def invert(self):
+        if isinstance(self.value, int):
+            return ConstantValue(~self.value)
+        return self
+    
     def with_flag(self, flag: Flag):
         from .condition import Condition
         return Condition(self, flag=flag)
