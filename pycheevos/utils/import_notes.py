@@ -393,7 +393,7 @@ def generate_script(game_id, notes, source):
         count += 1
 
     # Write to file
-    output_dir = os.path.join(ROOT_DIR, 'scripts')
+    output_dir = os.path.join(os.getcwd(), 'scripts')
     if not os.path.exists(output_dir): 
         os.makedirs(output_dir)
     filename = os.path.join(output_dir, f"notes_{game_id}.py")

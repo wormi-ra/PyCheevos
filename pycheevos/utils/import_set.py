@@ -320,7 +320,7 @@ def generate_script(game_id, achievements, source_name):
 
     lines.append("my_set.save()")
 
-    out_dir = os.path.join(ROOT_DIR, 'scripts')
+    out_dir = os.path.join(os.getcwd(), 'scripts')
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     out_file = os.path.join(out_dir, f"achievement_{game_id}.py")
     
