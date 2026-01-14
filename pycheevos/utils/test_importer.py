@@ -98,10 +98,11 @@ def parse_value(val_str: str, raw_hex: bool = False) -> str:
             result = "value(0)"
     elif val_str.isdigit():
         val_int = int(val_str)
+        hex_str = f"0x{val_int:02x}"
         if raw_hex:
-            result = hex(val_int)
+            result = hex_str
         else:
-            result = f"value({hex(val_int)})"
+            result = f"value({hex_str})"
         
     elif val_str.replace('.', '', 1).isdigit():
         result = f"float({val_str})"
