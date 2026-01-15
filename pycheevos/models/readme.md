@@ -18,6 +18,7 @@ The **Models** module defines the structural components of a RetroAchievements s
     - [Initialization](#initialization-3)
     - [Lookups & Displays](#lookups--displays)
     - [Complete Example](#rich-presence-example)
+    - [Independent Save](#independent-save)
 5. [Game Objects (OOP)](#5-game-objects-oop)
     - [Defining a Class](#defining-a-class)
     - [Static vs Dynamic](#usage-static-vs-dynamic)
@@ -46,8 +47,6 @@ game_set = AchievementSet(game_id=12345, title="My Awesome Game")
 * `add_rich_presence(rp)`: Registers the Rich Presence object.
 * `save(path=None)`: Exports `[ID]-User.txt` and `[ID]-Rich.txt`.
 * If `path` is not provided, defaults to an `output/` folder next to the script file.
-
-
 
 ---
 
@@ -195,12 +194,15 @@ rp = RichPresence()
 
 #### **Lookups & Displays**
 
-1. **Lookups**: Map integer values to text (e.g., Level IDs -> Names).
-2. **Displays**: A list of conditions evaluated top-to-bottom. The first one that is true determines the text shown.
+1. **Lookups**: Map integer values to text. You can now use **tuples** to map multiple IDs to the same string.
+2. **Displays**: A list of conditions evaluated top-to-bottom.
+* Use `None` as the condition for the default fallback.
+* You can use **f-strings** with memory objects (`@VALUE({mem})`) for cleaner code.
+* You can pass complex logic (using `&`, `|`) directly to `add_display`.
+
+
 
 #### **Rich Presence Example**
-
-Imagine a platformer game with different characters and difficulties.
 
 ```python
 # 1. Define Lookups
@@ -210,16 +212,11 @@ rp.add_lookup("Characters", {
     2: "Knuckles"
 })
 
-rp.add_lookup("Difficulty", {
-    0: "Easy", 
-    1: "Normal", 
-    2: "Hard"
-})
-
+# New Feature: Grouping keys with tuples
 rp.add_lookup("Stages", {
-    0: "Green Hill", 
-    1: "Marble Zone", 
-    2: "Spring Yard"
+    (0, 1, 2): "Green Hill Zone", 
+    (3, 4, 5): "Marble Zone",
+    6: "Spring Yard"
 })
 
 # 2. Define Display Logic (Order matters!)
@@ -231,28 +228,31 @@ rp.add_display(
 )
 
 # Case 2: Paused (Paused == 1)
-# Uses lookup macros: @Name(address)
+# New Syntax: using f-strings for formatting
 rp.add_display(
     mem_paused == 1, 
-    "Paused - @Stages(0xH1234) [Time: @Value(0x1230)]"
+    f"Paused - @Stages({mem_stage}) [Time: @VALUE({mem_time})]"
 )
 
 # Case 3: In-Game (Default fallback)
-# Shows: "Playing as Sonic on Hard - Green Hill (Lives: 3)"
+# Use 'None' for the unconditional display
 rp.add_display(
-    "Playing as @Characters(0xH0010) on @Difficulty(0xH0011) - @Stages(0xH1234) (Lives: @Value(0xH0020))"
+    None,
+    f"Playing as @Characters({mem_char}) in @Stages({mem_stage}) (Lives: {mem_lives})"
 )
 
 # 3. Add to Set
 game_set.add_rich_presence(rp)
 ```
 
-**Macros available:**
+#### **Independent Save**
 
-* `@LookupName(address)`: Maps value to text.
-* `@Value(address)`: Shows raw number.
-* `@Value(address*10)`: Shows scaled number.
-* `@Float1(address)`: Shows float with 1 decimal.
+You can save the Rich Presence script separately from the main set if you prefer modularity.
+
+```python
+# Generates 12345-Rich.txt in the output folder
+rp.save(game_id=12345, title="My Game RP")
+```
 
 ---
 

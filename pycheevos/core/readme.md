@@ -204,7 +204,7 @@ You can chain conditions using Python bitwise operators. This automatically gene
 | Operator | Symbol | RA Flag | Description |
 | --- | --- | --- | --- |
 | **AND** | `&` | `AND_NEXT` | All conditions must be true. |
-| **OR** | ` | ` | `OR_NEXT` |
+| **OR** | `\|` | `OR_NEXT` |
 | **NOT** | `~` | N/A | Inverts comparison and logic. |
 
 ```python

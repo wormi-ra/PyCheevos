@@ -4,10 +4,12 @@
 
 Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full power of the Python ecosystem (loops, functions, classes) to build complex achievement logic with clean, readable code.
 
-* **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) for clean condition chaining.
-* **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and Rich Presence.
-* **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains hybrid importers (`import_notes`, `import_achievements`) that can fetch data from local files or directly from the RetroAchievements server.
+* **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) and **f-strings** for clean condition chaining and text formatting.
+* **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and **Rich Presence** (now supporting independent saving and tuple lookups).
+* **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains the **Smart Importer** CLI that automatically maps Code Notes to Python variables, fetching data from local files or directly from the RetroAchievements server.
+
 #
+
 ### Installation
 
 You can install PyCheevos directly from PyPI:
@@ -16,32 +18,37 @@ You can install PyCheevos directly from PyPI:
 pip install pycheevos
 ```
 > [!NOTE]
-> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.4`
+> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.5`
 
 ### Usage
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
 
-### Get Started
+### Quick Start with the Smart Importer
+
+PyCheevos now includes a powerful CLI tool to scaffold your sets instantly.
+
+Run the importer from any folder in your terminal:
+
+```bash
+pycheevos-import
+```
+
+Select **Option 3 (Unified Import)** to perform a "Smart Sync":
+
+1. **Downloads Code Notes** and generates a `notes.py` file.
+2. **Downloads Achievements** and generates an `achievements.py` file.
+3. **Auto-Mapping:** The generator automatically detects variable names from `notes.py` and uses them in your achievement logic (e.g., `health == 0x04` instead of `byte(0x1234) == value(4)`).
+
+---
+
+### Manual Scripting
+
 Create a new `.py` file and import the library modules (`models` and `core`).
 
-Run your script to generate an `output` folder containing your RA logic files (`[ID]-User.txt`).    
+Run your script to generate an `output` folder containing your RA logic files (`[ID]-User.txt`).
+
 You can change this output location by defining a path in the `.save()` function of `AchievementSet`.
 
-#### Using the Importers
-
-To run the importer tools installed via pip, use the `-m` flag:
-
-* **To import achievements**:
-```bash
-python -m pycheevos.utils.import_achievements
-```
-*(Supports local files and server download)*
-* **To import notes**:
-```bash
-python -m pycheevos.utils.import_notes
-```
-*(Automatically detects pointer hierarchies and fetches notes from the server if needed)*
-#
 #### Small Demo
 ```python
 from pycheevos.models.set import AchievementSet
@@ -60,7 +67,7 @@ mem_zone  = byte(0xFE10)
 def got_rings(amount):
     """Triggers when ring count increases to or past 'amount'."""
     # Use '&' for AND, '|' for OR, '~' for NOT
-    # Use value() to wrap constant numbers safely
+    # Use value() to wrap constant numbers safely (optional if comparing against memory)
     return (mem_rings >= value(amount)) & (prior(mem_rings) < value(amount))
 
 # Create Achievement
@@ -75,10 +82,10 @@ ach = Achievement(
 # Apply Logic
 # New Syntax: You can chain logic directly using operators
 ach.add_core(
-    got_rings(1000) & (mem_zone == value(0)) # Must be in Green Hill
+    got_rings(1000) & (mem_zone == 0) # Must be in Green Hill
 )
 
-# Add reset logic using the new helper function
+# Add reset logic using the helper function
 ach.add_core(
     reset_if(mem_rings == 0)
 )
@@ -88,7 +95,7 @@ game_set.add_achievement(ach)
 # Generate the user file (1-User.txt)
 game_set.save()
 ```
-#
+
 ### User Repositories
 
 * [CarlosNatanael/RA-Scripts-py](https://github.com/CarlosNatanael/RA-Scripts-py)

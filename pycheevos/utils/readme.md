@@ -2,58 +2,90 @@
 
 The **Utils** module provides powerful migration tools to convert existing RetroAchievements data (Code Notes and Achievements) into modern PyCheevos Python scripts.
 
+You can access these tools via the command line interface:
+
+```bash
+pycheevos-import
+```
+
 These tools are **Hybrid**:
-1.  **Local First**: They scan your emulator directory for existing work (`User.txt`, `.json`).
-2.  **Cloud Fallback**: If nothing is found, they offer to download the latest data from the RetroAchievements server.
+
+1. **Local First**: They scan your emulator directory for existing work (`User.txt`, `.json`).
+2. **Cloud Fallback**: If nothing is found, they offer to download the latest data from the RetroAchievements server.
 
 ### Table of Contents
-1. [First Run & Setup](#1-first-run--setup)
-2. [Import Strategy](#2-import-strategy)
-3. [Import Notes](#3-import-notes)
-4. [Import Achievements](#4-import-achievements)
 
-#
+1. [First Run & Setup](https://www.google.com/search?q=%231-first-run--setup)
+2. [Import Strategy](https://www.google.com/search?q=%232-import-strategy)
+3. [The Smart Importer (Unified)](https://www.google.com/search?q=%233-the-smart-importer-unified)
+4. [Legacy/Individual Importers](https://www.google.com/search?q=%234-legacyindividual-importers)
 
 ### 1. **First Run & Setup**
+
 The scripts need to know where your emulator (RALibretro, RAIntegration, etc.) is located to find your local files.
 
 **How it asks for the folder:**
-1.  **Automatic Cache**: It first checks for a hidden file `RACache`. If it exists, it loads the path silently.
-2.  **Selection Window**: If no cache is found, it attempts to open a system folder selection window (via `tkinter`).
-3.  **Manual Input**: If the window cannot be opened, it falls back to asking you to type/paste the path in the terminal.
 
-> [!NOTE] 
-> The path is saved locally in `RACache` so you only need to do this once.
+1. **Automatic Cache**: It first checks for a hidden file `.racache_path`. If it exists, it loads the path silently.
+2. **Selection Window**: If no cache is found, it attempts to open a system folder selection window (via `tkinter`).
+3. **Manual Input**: If the window cannot be opened, it falls back to asking you to type/paste the path in the terminal.
 
-#
+> [!NOTE]
+> The path is saved locally so you only need to do this once.
 
 ### 2. **Import Strategy**
+
 When you provide a Game ID, the tool performs a smart scan of your emulator directory:
 
-1.  **Recursive Scan**: It looks through the root folder and subfolders.
-2.  **File Priority**:
-    * **High Priority**: `[ID]-User.txt`. This file contains your local, unsaved edits. The tool prefers this so you don't lose work-in-progress.
-    * **Medium Priority**: `[ID]-Notes.json` or `[ID].json`. These usually contain the last saved state from the server.
-3.  **Parsing**: It reads the file line-by-line (for TXT) or parses the object structure (for JSON) to extract memory addresses and logic strings.
+1. **Recursive Scan**: It looks through the root folder and subfolders.
+2. **File Priority**:
+* **High Priority**: `[ID]-User.txt`. This file contains your local, unsaved edits. The tool prefers this so you don't lose work-in-progress.
+* **Medium Priority**: `[ID]-Notes.json` or `[ID].json`. These usually contain the last saved state from the server.
+
+
+3. **Parsing**: It reads the file line-by-line (for TXT) or parses the object structure (for JSON) to extract memory addresses and logic strings.
 
 **Server Download (Fallback)**
 If no local files are found, the script prompts for your RA credentials. It connects securely to fetch the latest game data directly from the database, ensuring you always have a starting point even on a fresh install.
 
-#
+### 3. **The Smart Importer (Unified)**
 
-### 3. **Import Notes**
-**Script:** `utils/import_notes.py`
+**Menu Option:** `3` (Recommended)
+
+This is the most powerful tool in the kit. It combines Note processing and Achievement generation to produce human-readable code.
+
+**How it works:**
+
+1. **Generates Notes**: Downloads Code Notes and creates a `notes_[ID].py` file, defining variables like `health = byte(0x1234)`.
+2. **Maps Variables**: It builds a dictionary of addresses -> variable names.
+3. **Generates Achievements**: It parses existing achievements, but instead of writing raw addresses (`byte(0x1234)`), it **automatically replaces them** with the variable names found in step 1.
+
+**Comparison:**
+
+* **Raw Import:**
+```python
+(byte(0x1234) == value(10))
+```
+
+
+* **Smart Import:**
+```python
+(health == 0x0a)
+```
+
+
+
+### 4. **Legacy/Individual Importers**
+
+If you only need to generate one type of file, you can use Options 1 or 2.
+
+#### **Import Notes**
+
+**Menu Option:** `1`
 
 Reads code notes and generates a python file defining them as `byte()`, `word()`, `dword()`, etc. It handles naming conflicts and sanitizes strings to be valid Python identifiers.
 
-**Usage:**
-```bash
-python utils/import_notes.py
-# Follow the prompts to enter the Game ID
-```
-
-#### **Pointer Detection**
-
+**Pointer Detection:**
 The importer recognizes the RetroAchievements pointer hierarchy convention (`+`, `++`) and automatically generates the corresponding pointer logic (`>>`).
 
 **Input (Code Note):**
@@ -74,26 +106,23 @@ base_pointer = dword(0x123456)
 current_health = (base_pointer >> dword(0x44) >> dword(0x10) >> byte(0x30))
 ```
 
-### 4. **Import Achievements**
+#### **Import Achievements**
 
-**Script:** `utils/import_achievements.py`
+**Menu Option:** `2`
 
-Lê um set de conquistas existente e gera um script Python completo (`scripts/imported_[ID].py`) com toda a lógica traduzida e pronta para compilar.
+Reads an existing achievement set and generates a complete Python script (`scripts/achievement_[ID].py`) with all logic translated.
 
-**Usage:**
+> [!TIP]
+> Use **Option 3** instead to get variable names in your logic. Option 2 produces "Raw" logic with memory addresses.
 
-```bash
-python utils/import_achievements.py
-```
-
-#### **Logic Translation Capabilities**
-
+**Logic Translation Capabilities:**
 The parser handles complex RetroAchievements logic features automatically:
 
-* **Bitmasks**: Automatically identifies masked addresses (e.g., `0x00A0 & 0xFF`) and converts them to `(mem & value(0xFF))`.
-* **Type Safety**: Wraps raw numbers in `value()` to ensure Python handles them as logic objects, preventing math errors.
+* **Bitmasks**: Automatically identifies masked addresses (e.g., `0x00A0 & 0xFF`) and converts them to `(mem & 0xFF)`.
+* **Hex Formatting**: Constants are formatted as Hexadecimal (`0x0f`) for readability.
+* **Clean Syntax**: Smartly omits `value()` wrappers when comparing against memory objects.
 * **Floats**: Correctly identifies and converts floating-point values.
-* **Flags**: Translates all logic flags (`R:`, `P:`, `M:`, `A:`, etc.) into `.with_flag(...)`.
+* **Flags**: Translates all logic flags (`R:`, `P:`, `M:`, `A:`, etc.) into wrapper functions like `reset_if(...)`.
 
 **Example Conversion:**
 
@@ -102,10 +131,10 @@ The parser handles complex RetroAchievements logic features automatically:
 * **Generated Python**:
 ```python
 logic = [
-    # Condition
-    byte(0x1234) == value(1),
+    # Condition (Cleaner syntax)
+    byte(0x1234) == 0x01,
 
-    # Reset Flag
-    (byte(0x5678) != value(0)).with_flag(reset_if)
+    # Reset Flag (Wrapper function)
+    reset_if(byte(0x5678) != 0x00)
 ]
 ```
