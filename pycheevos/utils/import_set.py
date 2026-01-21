@@ -210,7 +210,7 @@ def extract_from_json_obj(content):
     
     source_ach = []
     source_lb = []
-    
+
     if "Sets" in content and isinstance(content["Sets"], list):
         for s in content["Sets"]: source_ach.extend(s.get("Achievements", []))
     
@@ -486,15 +486,27 @@ def process_game(game_id):
     elif not local_achs and not local_lbs:
         final_achs, final_lbs = server_achs, server_lbs
         final_source = "RA Server"
-        status_msg = "Server Only (New Import)"
+        status_msg = "Server Only"
     elif not server_achs and not server_lbs:
         final_achs, final_lbs = local_achs, local_lbs
         final_source = local_source
         status_msg = "Local Only (Offline)"
     else:
-        final_achs, final_lbs = local_achs, local_lbs
+        if local_achs:
+            final_achs = local_achs
+            src_a = "Local"
+        else:
+            final_achs = server_achs
+            src_a = "Server"
+        if local_lbs:
+            final_lbs = local_lbs
+            src_l = "Local"
+        else:
+            final_lbs = server_lbs
+            src_l = "Server"
+
         final_source = local_source
-        status_msg = "Local Modifications Detected (Unsynced)"
+        status_msg = f"Merged: Achievements ({src_a}) + Leaderboards ({src_l})"
 
     print(f"\n[RESULT] Using: {final_source}")
     print(f"[STATUS] {status_msg}")
