@@ -210,7 +210,7 @@ def extract_from_json_obj(content):
     
     source_ach = []
     source_lb = []
-
+    
     if "Sets" in content and isinstance(content["Sets"], list):
         for s in content["Sets"]: source_ach.extend(s.get("Achievements", []))
     
@@ -226,7 +226,6 @@ def extract_from_json_obj(content):
             if a.get('ID') not in current_ids:
                 source_ach.append(a)
 
-    # --- Coleta Robusta de Leaderboards ---
     if "Leaderboards" in content and isinstance(content["Leaderboards"], list):
         source_lb.extend(content["Leaderboards"])
         
@@ -273,7 +272,6 @@ def extract_data(source_data, is_file=False):
                     leaderboards = []
                     for line in f:
                         line = line.strip()
-                        # --- Parse Achievements ---
                         if re.match(r'^\d+:', line):
                             parts = line.split('":')
                             if len(parts) >= 4:
@@ -286,18 +284,10 @@ def extract_data(source_data, is_file=False):
                                     'type': "",
                                     'badge': parts[6].strip(':').strip() if len(parts)>6 else "00000"
                                 })
-                        
-                        # --- Parse Leaderboards ---
                         elif re.match(r'^L\d+:', line):
                             match = re.match(r'^L(\d+):"([^"]*)":"([^"]*)":"([^"]*)":"([^"]*)":([^:]+):(.*):([01])$', line)
-
                             if match:
-                                lb_id = match.group(1)
-                                mem_str = f"STA:{match.group(2)}::CAN:{match.group(3)}::SUB:{match.group(4)}::VAL:{match.group(5)}"
-                                fmt = match.group(6)
                                 title_desc = match.group(7)
-                                lower = match.group(8) == "1"
-                                
                                 title = "Unknown"
                                 desc = "Unknown"
                                 td_match = re.match(r'^"(.+?)":"(.+?)"$', title_desc)
@@ -308,12 +298,12 @@ def extract_data(source_data, is_file=False):
                                     title = title_desc.replace('"', '')
 
                                 leaderboards.append({
-                                    'id': lb_id,
-                                    'mem': mem_str,
+                                    'id': match.group(1),
+                                    'mem': f"STA:{match.group(2)}::CAN:{match.group(3)}::SUB:{match.group(4)}::VAL:{match.group(5)}",
                                     'title': title,
                                     'desc': desc,
-                                    'format': fmt,
-                                    'lower_is_better': lower
+                                    'format': match.group(6),
+                                    'lower_is_better': match.group(8) == "1"
                                 })
                     return achievements, leaderboards
         except Exception as e:
@@ -324,106 +314,129 @@ def extract_data(source_data, is_file=False):
 
 def generate_script(game_id, achievements, leaderboards, source_name):
     if not achievements and not leaderboards: return False
-    print(f"\n[GENERATING] Processing {len(achievements)} achievements and {len(leaderboards)} leaderboards from {source_name}...\n")
     
-    lines = []
-    lines.append("from pycheevos.core.helpers import *")
-    lines.append("from pycheevos.core.constants import *")
-    lines.append("from pycheevos.core.condition import Condition")
-    lines.append("from pycheevos.models.achievement import Achievement")
-    lines.append("from pycheevos.models.leaderboard import Leaderboard")
-    lines.append("from pycheevos.models.set import AchievementSet")
-    lines.append(f"from notes_{game_id} import *") 
-    lines.append("")
-    lines.append(f'my_set = AchievementSet(game_id={game_id}, title="Imported Set")')
-    lines.append("")
-
-    # --- ACHIEVEMENTS ---
-    for ach in achievements:
-        title = ach['title'].replace('"', '\\"')
-        desc = ach['desc'].replace('"', '\\"')
-        ach_id = ach['id']
-        ach_type = ach.get('type', '')
-        badge = ach.get('badge', '00000')
-
-        type_str = ""
-        if ach_type == "progression": type_str = ", type=AchievementType.PROGRESSION"
-        elif ach_type == "win_condition": type_str = ", type=AchievementType.WIN_CONDITION"
-        elif ach_type == "missable": type_str = ", type=AchievementType.MISSABLE"
-        
-        lines.append(f"# --- {title} ---")
-        lines.append(f"# Logic: {ach['mem']}")
-        
-        logic_groups = parse_logic(ach['mem'])
-        
-        core_var = ""
-        alt_vars = []
-        
-        for name, conds in logic_groups:
-            var_name = f"ach_{ach_id}_{name}"
-            if name == "logic": core_var = var_name
-            else: alt_vars.append(var_name)
-            
-            lines.append(f"{var_name} = [")
-            for c in conds: lines.append(f"    {c},")
-            lines.append("]")
-        
-        lines.append(f"ach_{ach_id} = Achievement(")
-        lines.append(f'    title="""{title}""",')
-        lines.append(f'    description="""{desc}""",')
-        lines.append(f'    points={ach["points"]}{type_str},')
-        lines.append(f'    id={ach_id}, badge="{badge}"')
-        lines.append(")")
-        
-        if core_var: lines.append(f"ach_{ach_id}.add_core({core_var})")
-        for alt in alt_vars: lines.append(f"ach_{ach_id}.add_alt({alt})")
-        lines.append(f"my_set.add_achievement(ach_{ach_id})")
-        lines.append("")
-
-    # --- LEADERBOARDS ---
-    for lb in leaderboards:
-        lb_id = lb['id']
-        title = lb['title'].replace('"', '\\"')
-        desc = lb['desc'].replace('"', '\\"')
-        fmt = lb['format']
-        lower = "True" if lb['lower_is_better'] else "False"
-        fmt_enum = f"LeaderboardFormat.{fmt}" if fmt else "LeaderboardFormat.VALUE"
-
-        lines.append(f"# --- LB: {title} ---")
-        sections = parse_lb_logic(lb['mem'])
-        
-        for section_name, conditions in sections.items():
-            if not conditions: continue
-            var_name = f"lb_{lb_id}_{section_name}"
-            lines.append(f"{var_name} = [")
-            for c in conditions: lines.append(f"    {c},")
-            lines.append("]")
-
-        lines.append(f"lb_{lb_id} = Leaderboard(")
-        lines.append(f'    title="""{title}""",')
-        lines.append(f'    description="""{desc}""",')
-        lines.append(f'    id={lb_id},')
-        lines.append(f'    format={fmt_enum},')
-        lines.append(f'    lower_is_better={lower}')
-        lines.append(")")
-        
-        if sections['start']: lines.append(f"lb_{lb_id}.set_start(lb_{lb_id}_start)")
-        if sections['cancel']: lines.append(f"lb_{lb_id}.set_cancel(lb_{lb_id}_cancel)")
-        if sections['submit']: lines.append(f"lb_{lb_id}.set_submit(lb_{lb_id}_submit)")
-        if sections['value']: lines.append(f"lb_{lb_id}.set_value(lb_{lb_id}_value)")
-        
-        lines.append(f"my_set.add_leaderboard(lb_{lb_id})")
-        lines.append("")
-
-    lines.append("my_set.save()")
-
     out_dir = os.path.join(os.getcwd(), 'scripts')
     if not os.path.exists(out_dir): os.makedirs(out_dir)
-    out_file = os.path.join(out_dir, f"achievement_{game_id}.py")
-    
-    with open(out_file, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(lines))
-    print(f"SUCCESS! Script generated: {out_file}")
+
+    # --- 1. GENERATE ACHIEVEMENTS FILE ---
+    if achievements:
+        print(f"\n[GENERATING] Processing {len(achievements)} achievements from {source_name}...")
+        
+        lines = []
+        lines.append("from pycheevos.core.helpers import *")
+        lines.append("from pycheevos.core.constants import *")
+        lines.append("from pycheevos.core.condition import Condition")
+        lines.append("from pycheevos.models.achievement import Achievement")
+        lines.append("from pycheevos.models.set import AchievementSet")
+        lines.append(f"from notes_{game_id} import *") 
+        lines.append("")
+        lines.append(f'my_set = AchievementSet(game_id={game_id}, title="Imported Achievements")')
+        lines.append("")
+
+        for ach in achievements:
+            title = ach['title'].replace('"', '\\"')
+            desc = ach['desc'].replace('"', '\\"')
+            ach_id = ach['id']
+            ach_type = ach.get('type', '')
+            badge = ach.get('badge', '00000')
+
+            type_str = ""
+            if ach_type == "progression": type_str = ", type=AchievementType.PROGRESSION"
+            elif ach_type == "win_condition": type_str = ", type=AchievementType.WIN_CONDITION"
+            elif ach_type == "missable": type_str = ", type=AchievementType.MISSABLE"
+            
+            lines.append(f"# --- {title} ---")
+            lines.append(f"# Logic: {ach['mem']}")
+            
+            logic_groups = parse_logic(ach['mem'])
+            
+            core_var = ""
+            alt_vars = []
+            
+            for name, conds in logic_groups:
+                var_name = f"ach_{ach_id}_{name}"
+                if name == "logic": core_var = var_name
+                else: alt_vars.append(var_name)
+                
+                lines.append(f"{var_name} = [")
+                for c in conds: lines.append(f"    {c},")
+                lines.append("]")
+            
+            lines.append(f"ach_{ach_id} = Achievement(")
+            lines.append(f'    title="""{title}""",')
+            lines.append(f'    description="""{desc}""",')
+            lines.append(f'    points={ach["points"]}{type_str},')
+            lines.append(f'    id={ach_id}, badge="{badge}"')
+            lines.append(")")
+            
+            if core_var: lines.append(f"ach_{ach_id}.add_core({core_var})")
+            for alt in alt_vars: lines.append(f"ach_{ach_id}.add_alt({alt})")
+            lines.append(f"my_set.add_achievement(ach_{ach_id})")
+            lines.append("")
+
+        lines.append("my_set.save()")
+        
+        ach_file = os.path.join(out_dir, f"achievement_{game_id}.py")
+        with open(ach_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+        print(f"SUCCESS! Achievements generated: {ach_file}")
+
+    # --- 2. GENERATE LEADERBOARDS FILE ---
+    if leaderboards:
+        print(f"\n[GENERATING] Processing {len(leaderboards)} leaderboards from {source_name}...")
+        
+        lines = []
+        lines.append("from pycheevos.core.helpers import *")
+        lines.append("from pycheevos.core.constants import *")
+        lines.append("from pycheevos.core.condition import Condition")
+        lines.append("from pycheevos.models.leaderboard import Leaderboard")
+        lines.append("from pycheevos.models.set import AchievementSet")
+        lines.append(f"from notes_{game_id} import *") 
+        lines.append("")
+        lines.append(f'my_set = AchievementSet(game_id={game_id}, title="Imported Leaderboards")')
+        lines.append("")
+
+        for lb in leaderboards:
+            lb_id = lb['id']
+            title = lb['title'].replace('"', '\\"')
+            desc = lb['desc'].replace('"', '\\"')
+            fmt = lb['format']
+            lower = "True" if lb['lower_is_better'] else "False"
+            fmt_enum = f"LeaderboardFormat.{fmt}" if fmt else "LeaderboardFormat.VALUE"
+
+            lines.append(f"# --- LB: {title} ---")
+            sections = parse_lb_logic(lb['mem'])
+            
+            for section_name, conditions in sections.items():
+                if not conditions: continue
+                var_name = f"lb_{lb_id}_{section_name}"
+                lines.append(f"{var_name} = [")
+                for c in conditions: lines.append(f"    {c},")
+                lines.append("]")
+
+            lines.append(f"lb_{lb_id} = Leaderboard(")
+            lines.append(f'    title="""{title}""",')
+            lines.append(f'    description="""{desc}""",')
+            lines.append(f'    id={lb_id},')
+            lines.append(f'    format={fmt_enum},')
+            lines.append(f'    lower_is_better={lower}')
+            lines.append(")")
+            
+            if sections['start']: lines.append(f"lb_{lb_id}.set_start(lb_{lb_id}_start)")
+            if sections['cancel']: lines.append(f"lb_{lb_id}.set_cancel(lb_{lb_id}_cancel)")
+            if sections['submit']: lines.append(f"lb_{lb_id}.set_submit(lb_{lb_id}_submit)")
+            if sections['value']: lines.append(f"lb_{lb_id}.set_value(lb_{lb_id}_value)")
+            
+            lines.append(f"my_set.add_leaderboard(lb_{lb_id})")
+            lines.append("")
+
+        lines.append("my_set.save()")
+        
+        lb_file = os.path.join(out_dir, f"leaderboard_{game_id}.py")
+        with open(lb_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+        print(f"SUCCESS! Leaderboards generated: {lb_file}")
+
     return True
 
 def process_game(game_id):
