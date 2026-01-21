@@ -17,8 +17,8 @@ def main():
     print("\nWhat would you like to import?")
     print("[1] Code Notes only")
     print("[2] Achievements only (Raw)")
-    print("[3] Unified (Notes + Smart Achievements + Leaderboards)")
-    print("[4] Leaderboards only (Raw)") # <--- NOVA OPÇÃO
+    print("[3] Leaderboards only (Raw)")
+    print("[4] Unified (Notes + Smart Achievements + Leaderboards)")
     print("[q] Quit")
 
     choice = input("\nChoice: ").strip().lower()
@@ -33,14 +33,14 @@ def main():
     elif choice == '2':
         print("\n --- Starting Achievements Import ---")
         import_achievements.process_game(game_id)
-
-    elif choice == '3':
-        print("\n--- Unified Import ---")
-        import_set.process_game(game_id)
         
-    elif choice == '4':
+    elif choice == '3':
         print("\n --- Starting Leaderboards Import ---")
         test_leaderboard.process_game(game_id)
+
+    elif choice == '4':
+        print("\n--- Unified Import ---")
+        import_set.process_game(game_id)
     
     else:
         print("Invalid option")

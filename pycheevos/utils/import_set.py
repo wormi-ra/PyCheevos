@@ -20,9 +20,7 @@ def get_credentials():
     return import_notes.get_credentials()
 
 def calculate_checksum(data_list):
-    """
-    Gera um hash único para lista de Achievements ou Leaderboards.
-    """
+
     standardized = []
     for item in data_list:
         id_str = str(item.get('id', ''))
@@ -261,11 +259,9 @@ def extract_from_json_obj(content):
         source_lb = content["Leaderboards"]
     elif "PatchData" in content and isinstance(content["PatchData"], dict):
         patch = content["PatchData"]
-        # Se source_ach já foi populado acima, não duplicar, mas garantir que pegamos LBs
         if not source_ach: source_ach.extend(patch.get("Achievements", []))
         source_lb.extend(patch.get("Leaderboards", []))
 
-    # Processa Conquistas
     for a in source_ach:
         if a.get('ID') == 101000001: continue
         data_ach.append({
@@ -275,10 +271,9 @@ def extract_from_json_obj(content):
             'points': a.get('Points', 0),
             'mem': a.get('MemAddr', '') or '',
             'type': a.get('Type') or '',
-            'badge': a.get('BadgeName', '00000') # <--- NOVO: Captura Badge
+            'badge': a.get('BadgeName', '00000')
         })
-        
-    # Processa Leaderboards
+
     for lb in source_lb:
         data_lb.append({
             'id': lb.get('ID'),
@@ -300,7 +295,6 @@ def extract_data(source_data, is_file=False):
                     content = json.load(f)
                     return extract_from_json_obj(content)
                 else:
-                    # Fallback para TXT (Apenas Achievements suportados no TXT antigo)
                     achievements = []
                     for line in f:
                         if re.match(r'^\d+:', line):
@@ -389,7 +383,6 @@ def generate_script(game_id, achievements, leaderboards, source_name):
         fmt = lb['format']
         lower = "True" if lb['lower_is_better'] else "False"
         
-        # Mapeia formato para Enum se possível
         fmt_enum = f"LeaderboardFormat.{fmt}" if fmt else "LeaderboardFormat.VALUE"
 
         lines.append(f"# --- LB: {title} ---")
@@ -437,7 +430,6 @@ def process_game(game_id):
 
     racache = get_racache_path()
     
-    # --- PASSO 1: CARREGAR NOTAS ---
     print("\n--- STEP 1: Loading Notes for Variable Mapping ---")
     
     local_notes = []
@@ -466,7 +458,6 @@ def process_game(game_id):
     else:
         print("[WARNING] No notes found. Script will use raw byte(0x...) addresses.")
 
-    # --- PASSO 2: CARREGAR CONQUISTAS & LEADERBOARDS ---
     print("\n--- STEP 2: Loading Achievements & Leaderboards ---")
     
     local_achs, local_lbs = [], []
@@ -495,7 +486,6 @@ def process_game(game_id):
         print("[ERROR] No data found locally or on server.")
         return
 
-    # Sincronização e Decisão (Checa Hash Combinado)
     local_hash = calculate_checksum(local_achs + local_lbs)
     server_hash = calculate_checksum(server_achs + server_lbs)
 

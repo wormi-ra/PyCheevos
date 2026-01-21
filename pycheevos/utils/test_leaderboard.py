@@ -36,9 +36,6 @@ def get_credentials():
 # --- HASHING ---
 
 def calculate_checksum(data_list):
-    """
-    Gera um hash único para lista de Leaderboards.
-    """
     standardized = []
     for item in data_list:
         id_str = str(item.get('id', ''))
@@ -308,7 +305,7 @@ def process_game(game_id):
     elif server_lbs and not local_lbs:
         final_lbs = server_lbs
         final_source = "RA Server"
-        status_msg = "Server Only (New Import)"
+        status_msg = "Server Only"
 
     else:
         local_hash = calculate_checksum(local_lbs)
