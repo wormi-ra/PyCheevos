@@ -1,6 +1,7 @@
 from pycheevos.utils import import_notes
 from pycheevos.utils import import_set
 from pycheevos.utils import import_achievements
+from pycheevos.utils import test_leaderboard
 import sys
 import os
 
@@ -15,8 +16,9 @@ def main():
     
     print("\nWhat would you like to import?")
     print("[1] Code Notes only")
-    print("[2] Achievements only")
-    print("[3] Both (Recommended)")
+    print("[2] Achievements only (Raw)")
+    print("[3] Unified (Notes + Smart Achievements + Leaderboards)")
+    print("[4] Leaderboards only (Raw)") # <--- NOVA OPÇÃO
     print("[q] Quit")
 
     choice = input("\nChoice: ").strip().lower()
@@ -33,8 +35,12 @@ def main():
         import_achievements.process_game(game_id)
 
     elif choice == '3':
-        print("\n--- Unified Import (Notes + Smart Achievements) ---")
+        print("\n--- Unified Import ---")
         import_set.process_game(game_id)
+        
+    elif choice == '4':
+        print("\n --- Starting Leaderboards Import ---")
+        test_leaderboard.process_game(game_id)
     
     else:
         print("Invalid option")

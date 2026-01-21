@@ -88,7 +88,7 @@ def calculate_checksum(achievements_list):
         desc = str(ach.get('desc') or '').strip()
         points = str(ach.get('points', 0))
         type_str = str(ach.get('type') or '').strip()
-        badge = str(ach.get('badge', '')) # Inclui badge no hash
+        badge = str(ach.get('badge', ''))
         
         entry = f"{id_str}|{mem}|{title}|{desc}|{points}|{type_str}|{badge}"
         standardized.append(entry)
@@ -205,7 +205,6 @@ def parse_value(val_str: str, raw_hex: bool = False) -> str:
             result = "value(0)"
     elif val_str.isdigit():
         val_int = int(val_str)
-        # Force Hexadecimal with Padding
         hex_str = f"0x{val_int:02x}"
         if raw_hex:
             result = hex_str
@@ -253,7 +252,6 @@ def parse_condition(cond_str: str):
         if right_str.startswith("f"): right_str = right_str[1:]
         
         left = parse_value(left_str)
-        # Decide safety for right side
         use_raw_right = not left.startswith("float(")
         right = parse_value(right_str, raw_hex=use_raw_right)
         
@@ -302,7 +300,6 @@ def extract_achievements(source_data, is_file=False):
                                     'desc': parts[3].strip('"'),
                                     'points': parts[5] if len(parts)>5 else "0",
                                     'type': "",
-                                    # Tenta extrair badge do formato TXT (geralmente no final)
                                     'badge': parts[6].strip(':').strip() if len(parts)>6 else "00000"
                                 })
         except Exception as e:
@@ -339,7 +336,7 @@ def extract_from_json_obj(content):
             'points': a.get('Points', 0),
             'mem': a.get('MemAddr', '') or '',
             'type': a.get('Type') or '',
-            'badge': a.get('BadgeName', '00000') # <--- Badge Support
+            'badge': a.get('BadgeName', '00000')
         })
     return data
 
