@@ -1,7 +1,7 @@
 from pycheevos.utils import import_notes
 from pycheevos.utils import import_set
 from pycheevos.utils import import_achievements
-from pycheevos.utils import test_leaderboard
+from pycheevos.utils import import_leaderboard
 import sys
 import os
 
@@ -36,7 +36,7 @@ def main():
         
     elif choice == '3':
         print("\n --- Starting Leaderboards Import ---")
-        test_leaderboard.process_game(game_id)
+        import_leaderboard.process_game(game_id)
 
     elif choice == '4':
         print("\n--- Unified Import ---")
