@@ -296,12 +296,15 @@ def extract_data(source_data, is_file=False):
                     return extract_from_json_obj(content)
                 else:
                     achievements = []
+                    leaderboards = []
                     for line in f:
+                        line = line.strip()
+                        # --- Parse Achievements ---
                         if re.match(r'^\d+:', line):
                             parts = line.split('":')
                             if len(parts) >= 4:
                                 achievements.append({
-                                    'id': parts[0],
+                                    'id': parts[0].split(':')[0],
                                     'mem': parts[1].strip('"'),
                                     'title': parts[2].strip('"'),
                                     'desc': parts[3].strip('"'),
@@ -309,7 +312,41 @@ def extract_data(source_data, is_file=False):
                                     'type': "",
                                     'badge': parts[6].strip(':').strip() if len(parts)>6 else "00000"
                                 })
-                    return achievements, []
+                        
+                        # --- Parse Leaderboards ---
+                        elif re.match(r'^L\d+:', line):
+                            match = re.match(r'^L(\d+):"([^"]*)":"([^"]*)":"([^"]*)":"([^"]*)":([^:]+):(.*):([01])$', line)
+                            
+                            if match:
+                                lb_id = match.group(1)
+                                mem_str = f"STA:{match.group(2)}::CAN:{match.group(3)}::SUB:{match.group(4)}::VAL:{match.group(5)}"
+                                fmt = match.group(6)
+                                title_desc_part = match.group(7)
+                                lower = match.group(8) == "1"
+
+                                title = "Unknown"
+                                desc = "Unknown"
+                                
+                                td_match = re.match(r'^"(.+?)":"(.+?)"$', title_desc_part)
+                                if td_match:
+                                    title = td_match.group(1)
+                                    desc = td_match.group(2)
+                                else:
+                                    td_parts = title_desc_part.split(':')
+                                    if len(td_parts) >= 2:
+                                        desc = td_parts[-1].strip('"')
+                                        title = ":".join(td_parts[:-1]).strip('"')
+                                    else:
+                                        title = title_desc_part.strip('"')
+                                leaderboards.append({
+                                    'id': lb_id,
+                                    'mem': mem_str,
+                                    'title': title,
+                                    'desc': desc,
+                                    'format': fmt,
+                                    'lower_is_better': lower
+                                })
+                    return achievements, leaderboards
         except Exception as e:
             print(f"[ERROR] Failed to read file: {e}")
             return [], []
