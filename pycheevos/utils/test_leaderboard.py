@@ -19,17 +19,24 @@ def get_racache_path():
 def get_credentials():
     return import_notes.get_credentials()
 
-def calculate_checksum(achievements_list):
+def calculate_checksum(data_list):
+    """
+    Gera um hash único para lista de Achievements ou Leaderboards.
+    """
     standardized = []
-    for ach in achievements_list:
-        id_str = str(ach.get('id', ''))
-        mem = str(ach.get('mem') or '').strip()
-        title = str(ach.get('title') or '').strip()
-        desc = str(ach.get('desc') or '').strip()
-        points = str(ach.get('points', 0))
-        type_str = str(ach.get('type') or '').strip()
-
-        entry = f"{id_str}|{mem}|{title}|{title}|{desc}|{points}|{type_str}"
+    for item in data_list:
+        # Pega campos comuns
+        id_str = str(item.get('id', ''))
+        mem = str(item.get('mem') or '').strip()
+        title = str(item.get('title') or '').strip()
+        desc = str(item.get('desc') or '').strip()
+        
+        # Campos específicos
+        points = str(item.get('points', 0))
+        badge = str(item.get('badge', ''))
+        fmt = str(item.get('format', ''))
+        
+        entry = f"{id_str}|{mem}|{title}|{desc}|{points}|{badge}|{fmt}"
         standardized.append(entry)
 
     standardized.sort()
@@ -52,9 +59,7 @@ MEM_TYPES = {
     "fF": "float32", "fB": "float32_be", "fH": "double32", "fI": "double32_be", "fM": "mbf32", "fL": "mbf32_le",
 }
 PREFIXES = {"d": "delta", "p": "prior", "b": "bcd", "~": "invert"}
-
 CMP_MAP = {"!=": "!=", ">=": ">=", "<=": "<=", "=": "==", ">": ">", "<": "<"}
-
 CMP_KEYS = sorted(CMP_MAP.keys(), key=len, reverse=True)
 
 ADDRESS_MAP = {}
@@ -68,6 +73,7 @@ def parse_value(val_str: str, raw_hex: bool = False) -> str:
         wrap_func = PREFIXES[val_str[0]]
         val_str = val_str[1:]
 
+    # Lógica de Recall
     if "{recall}" in val_str:
         val_str = re.sub(r"0x[a-zA-Z]", "0x", val_str)
         op_match = re.search(r"(0x[a-fA-F0-9]+|[\d]+)\s*([\+\-\*\/])\s*\{recall\}", val_str)
@@ -97,6 +103,7 @@ def parse_value(val_str: str, raw_hex: bool = False) -> str:
             result = "value(0)"
     elif val_str.isdigit():
         val_int = int(val_str)
+        # Force Hexadecimal with Padding
         hex_str = f"0x{val_int:02x}"
         if raw_hex:
             result = hex_str
@@ -143,6 +150,7 @@ def parse_condition(cond_str: str):
         if right_str.startswith("f"): right_str = right_str[1:]
 
         left = parse_value(left_str)
+        # Check if left is a raw primitive float call to decide safety
         use_raw_right = not left.startswith("float(")
         right = parse_value(right_str, raw_hex=use_raw_right)
         
@@ -167,6 +175,37 @@ def parse_logic(mem_string):
         parsed_groups.append((name, conditions))
     return parsed_groups
 
+def parse_lb_logic(mem_string):
+    """
+    Parses leaderboard logic string (STA:...::CAN:...::SUB:...::VAL:...)
+    Returns a dict with lists of conditions for each section.
+    """
+    sections = {
+        'start': [], 'cancel': [], 'submit': [], 'value': []
+    }
+    
+    if not mem_string: return sections
+
+    parts = mem_string.split("::")
+    
+    for part in parts:
+        code = part[:4] # STA:, CAN:, etc
+        logic_str = part[4:]
+        
+        target = None
+        if code == "STA:": target = 'start'
+        elif code == "CAN:": target = 'cancel'
+        elif code == "SUB:": target = 'submit'
+        elif code == "VAL:": target = 'value'
+        
+        if target:
+            for cond in logic_str.split('_'):
+                if cond:
+                    parsed = parse_condition(cond)
+                    sections[target].append(parsed)
+
+    return sections
+
 # --- NOTE MAPPING BUILDER ---
 
 def build_address_map(notes):
@@ -180,7 +219,7 @@ def build_address_map(notes):
         if not text or not addr: continue
         try:
             int_addr = int(addr, 16) if str(addr).startswith("0x") else int(addr)
-            norm_addr = hex(int_addr)
+            norm_addr = hex(int_addr) # '0x10'
         except:
             continue
 
@@ -201,10 +240,60 @@ def build_address_map(notes):
 
     print(f"[SMART IMPORT] Mapped {len(ADDRESS_MAP)} variables from Code Notes.")
 
-# --- DATA PROCESSING (ACHIEVEMENTS) ---
+# --- DATA EXTRACTION (Unified) ---
 
-def extract_achievements(source_data, is_file=False):
-    achievements = []
+def extract_from_json_obj(content):
+    data_ach = []
+    data_lb = []
+    
+    source_ach = []
+    source_lb = []
+    
+    # --- Extração de Conquistas ---
+    if "Sets" in content and isinstance(content["Sets"], list):
+        for s in content["Sets"]: source_ach.extend(s.get("Achievements", []))
+    elif "PatchData" in content and isinstance(content["PatchData"], list):
+        for s in content["PatchData"]: source_ach.extend(s.get("Achievements", []))
+    
+    if not source_ach and "Achievements" in content:
+        source_ach = content["Achievements"]
+
+    # --- Extração de Leaderboards ---
+    if "Leaderboards" in content:
+        source_lb = content["Leaderboards"]
+    elif "PatchData" in content and isinstance(content["PatchData"], dict):
+        patch = content["PatchData"]
+        # Se source_ach já foi populado acima, não duplicar, mas garantir que pegamos LBs
+        if not source_ach: source_ach.extend(patch.get("Achievements", []))
+        source_lb.extend(patch.get("Leaderboards", []))
+
+    # Processa Conquistas
+    for a in source_ach:
+        if a.get('ID') == 101000001: continue
+        data_ach.append({
+            'id': a.get('ID'),
+            'title': a.get('Title', 'Sem Título') or '',
+            'desc': a.get('Description', '') or '',
+            'points': a.get('Points', 0),
+            'mem': a.get('MemAddr', '') or '',
+            'type': a.get('Type') or '',
+            'badge': a.get('BadgeName', '00000') # <--- NOVO: Captura Badge
+        })
+        
+    # Processa Leaderboards
+    for lb in source_lb:
+        data_lb.append({
+            'id': lb.get('ID'),
+            'title': lb.get('Title', 'Sem Título') or '',
+            'desc': lb.get('Description', '') or '',
+            'mem': lb.get('Mem', '') or '',
+            'format': lb.get('Format', 'VALUE'),
+            'lower_is_better': lb.get('LowerIsBetter', False)
+        })
+
+    return data_ach, data_lb
+
+def extract_data(source_data, is_file=False):
     if is_file:
         file_path = source_data
         try:
@@ -213,6 +302,8 @@ def extract_achievements(source_data, is_file=False):
                     content = json.load(f)
                     return extract_from_json_obj(content)
                 else:
+                    # Fallback para TXT (Apenas Achievements suportados no TXT antigo)
+                    achievements = []
                     for line in f:
                         if re.match(r'^\d+:', line):
                             parts = line.split('":')
@@ -223,60 +314,33 @@ def extract_achievements(source_data, is_file=False):
                                     'title': parts[2].strip('"'),
                                     'desc': parts[3].strip('"'),
                                     'points': parts[5] if len(parts)>5 else "0",
-                                    'type': ""
+                                    'type': "",
+                                    'badge': parts[6].strip(':').strip() if len(parts)>6 else "00000"
                                 })
+                    return achievements, []
         except Exception as e:
             print(f"[ERROR] Failed to read file: {e}")
-            return []
+            return [], []
     else:
         return extract_from_json_obj(source_data)
-    return achievements
 
-def extract_from_json_obj(content):
-    data = []
-    source_list = []
-    
-    if "Sets" in content and isinstance(content["Sets"], list):
-        for s in content["Sets"]: source_list.extend(s.get("Achievements", []))
-    elif "PatchData" in content and isinstance(content["PatchData"], list):
-        for s in content["PatchData"]: source_list.extend(s.get("Achievements", []))
-    
-    if not source_list and "Achievements" in content:
-        source_list = content["Achievements"]
-
-    if "PatchData" in content and isinstance(content["PatchData"], dict):
-        patch = content["PatchData"]
-        achievements = patch.get("Achievements", [])
-        source_list.extend(achievements)
-
-    for a in source_list:
-        if a.get('ID') == 101000001: continue
-        data.append({
-            'id': a.get('ID'),
-            'title': a.get('Title', 'Sem Título') or '',
-            'desc': a.get('Description', '') or '',
-            'points': a.get('Points', 0),
-            'mem': a.get('MemAddr', '') or '',
-            'type': a.get('Type') or ''
-        })
-    return data
-
-def generate_script(game_id, achievements, source_name):
-    if not achievements: return False
-    print(f"\n[GENERATING] Processing {len(achievements)} achievements from {source_name}...\n")
+def generate_script(game_id, achievements, leaderboards, source_name):
+    if not achievements and not leaderboards: return False
+    print(f"\n[GENERATING] Processing {len(achievements)} achievements and {len(leaderboards)} leaderboards from {source_name}...\n")
     
     lines = []
     lines.append("from pycheevos.core.helpers import *")
     lines.append("from pycheevos.core.constants import *")
     lines.append("from pycheevos.core.condition import Condition")
     lines.append("from pycheevos.models.achievement import Achievement")
+    lines.append("from pycheevos.models.leaderboard import Leaderboard")
     lines.append("from pycheevos.models.set import AchievementSet")
     lines.append(f"from notes_{game_id} import *") 
     lines.append("")
-    
     lines.append(f'my_set = AchievementSet(game_id={game_id}, title="Imported Set")')
     lines.append("")
 
+    # --- ACHIEVEMENTS ---
     for ach in achievements:
         title = ach['title'].replace('"', '\\"')
         desc = ach['desc'].replace('"', '\\"')
@@ -319,6 +383,43 @@ def generate_script(game_id, achievements, source_name):
         lines.append(f"my_set.add_achievement(ach_{ach_id})")
         lines.append("")
 
+    # --- LEADERBOARDS ---
+    for lb in leaderboards:
+        lb_id = lb['id']
+        title = lb['title'].replace('"', '\\"')
+        desc = lb['desc'].replace('"', '\\"')
+        fmt = lb['format']
+        lower = "True" if lb['lower_is_better'] else "False"
+        
+        # Mapeia formato para Enum se possível
+        fmt_enum = f"LeaderboardFormat.{fmt}" if fmt else "LeaderboardFormat.VALUE"
+
+        lines.append(f"# --- LB: {title} ---")
+        sections = parse_lb_logic(lb['mem'])
+        
+        for section_name, conditions in sections.items():
+            if not conditions: continue
+            var_name = f"lb_{lb_id}_{section_name}"
+            lines.append(f"{var_name} = [")
+            for c in conditions: lines.append(f"    {c},")
+            lines.append("]")
+
+        lines.append(f"lb_{lb_id} = Leaderboard(")
+        lines.append(f'    title="""{title}""",')
+        lines.append(f'    description="""{desc}""",')
+        lines.append(f'    id={lb_id},')
+        lines.append(f'    format={fmt_enum},')
+        lines.append(f'    lower_is_better={lower}')
+        lines.append(")")
+        
+        if sections['start']: lines.append(f"lb_{lb_id}.set_start(lb_{lb_id}_start)")
+        if sections['cancel']: lines.append(f"lb_{lb_id}.set_cancel(lb_{lb_id}_cancel)")
+        if sections['submit']: lines.append(f"lb_{lb_id}.set_submit(lb_{lb_id}_submit)")
+        if sections['value']: lines.append(f"lb_{lb_id}.set_value(lb_{lb_id}_value)")
+        
+        lines.append(f"my_set.add_leaderboard(lb_{lb_id})")
+        lines.append("")
+
     lines.append("my_set.save()")
 
     out_dir = os.path.join(os.getcwd(), 'scripts')
@@ -338,7 +439,7 @@ def process_game(game_id):
 
     racache = get_racache_path()
     
-    # --- PASSO 1: CARREGAR NOTAS  ---
+    # --- PASSO 1: CARREGAR NOTAS ---
     print("\n--- STEP 1: Loading Notes for Variable Mapping ---")
     
     local_notes = []
@@ -351,7 +452,7 @@ def process_game(game_id):
                 break
     
     server_notes = import_notes.fetch_server_notes(game_id)
-
+    
     final_notes = []
     if local_notes and not server_notes:
         final_notes = local_notes
@@ -366,67 +467,65 @@ def process_game(game_id):
         import_notes.generate_script(game_id, final_notes, "Smart Importer Sync")
     else:
         print("[WARNING] No notes found. Script will use raw byte(0x...) addresses.")
-        
-    # --- PASSO 2: CARREGAR CONQUISTAS ---
-    print("\n--- STEP 2: Loading Achievements ---")
-    local_achs = []
+
+    # --- PASSO 2: CARREGAR CONQUISTAS & LEADERBOARDS ---
+    print("\n--- STEP 2: Loading Achievements & Leaderboards ---")
+    
+    local_achs, local_lbs = [], []
     local_source = "None"
     
     if racache:
         candidates = find_all_candidates(racache, game_id)
         for _, file_path, file_name in candidates:
-            parsed = extract_achievements(file_path, is_file=True)
-            if parsed:
-                local_achs = parsed
+            parsed_achs, parsed_lbs = extract_data(file_path, is_file=True)
+            if parsed_achs or parsed_lbs:
+                local_achs, local_lbs = parsed_achs, parsed_lbs
                 local_source = file_name
                 break
 
     print(f"[SYNC] Checking server for updates on ID {game_id}...")
     server_data = fetch_server_data(game_id)
-    server_achs = []
+    server_achs, server_lbs = [], []
     if server_data:
-        server_achs = extract_achievements(server_data, is_file=False)
+        server_achs, server_lbs = extract_data(server_data, is_file=False)
 
-    final_achs = []
+    final_achs, final_lbs = [], []
     final_source = ""
     status_msg = ""
 
-    if not local_achs and not server_achs:
-        print("[ERROR] No achievements found locally or on server.")
+    if not local_achs and not server_achs and not local_lbs and not server_lbs:
+        print("[ERROR] No data found locally or on server.")
         return
 
-    if local_achs and not server_achs:
-        final_achs = local_achs
-        final_source = local_source
-        status_msg = "Local Only (Offline)"
-    
-    elif server_achs and not local_achs:
-        final_achs = server_achs
+    # Sincronização e Decisão (Checa Hash Combinado)
+    local_hash = calculate_checksum(local_achs + local_lbs)
+    server_hash = calculate_checksum(server_achs + server_lbs)
+
+    if local_hash == server_hash:
+        final_achs, final_lbs = server_achs, server_lbs
+        final_source = "RA Server (Synced)"
+        status_msg = "Synced with Local"
+    elif not local_achs:
+        final_achs, final_lbs = server_achs, server_lbs
         final_source = "RA Server"
         status_msg = "Server Only (New Import)"
-
+    elif not server_achs:
+        final_achs, final_lbs = local_achs, local_lbs
+        final_source = local_source
+        status_msg = "Local Only (Offline)"
     else:
-        local_hash = calculate_checksum(local_achs)
-        server_hash = calculate_checksum(server_achs)
+        final_achs, final_lbs = local_achs, local_lbs
+        final_source = local_source
+        status_msg = "Local Modifications Detected (Unsynced)"
 
-        if local_hash == server_hash:
-            final_achs = server_achs
-            final_source = "RA Server (Synced)"
-            status_msg = "Synced with Local"
-        else:
-            final_achs = local_achs
-            final_source = local_source
-            status_msg = "Local Modifications Detected (Unsynced)"
-            
-            diff = len(local_achs) - len(server_achs)
-            if diff != 0: status_msg += f" [Count Diff: {diff:+d}]"
-
+    # 4. Gera o Script
     print(f"\n[RESULT] Using: {final_source}")
     print(f"[STATUS] {status_msg}")
     
-    generate_script(game_id, final_achs, final_source)
+    generate_script(game_id, final_achs, final_lbs, final_source)
 
-# --- LOCAL SEARCH HELPER ---
+# --- HELPER FUNCTIONS (LOCAL & SERVER) ---
+
 def find_all_candidates(base_path, game_id):
     print(f"[DEBUG] Scanning {base_path} by ID {game_id}...")
     candidates = []
@@ -443,7 +542,6 @@ def find_all_candidates(base_path, game_id):
     candidates.sort(key=lambda x: x[0])
     return candidates
 
-# --- SERVER DOWNLOAD HELPER ---
 def fetch_server_data(game_id):
     user, password = get_credentials()
     if not user or not password: return None

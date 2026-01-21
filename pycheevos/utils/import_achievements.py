@@ -88,8 +88,9 @@ def calculate_checksum(achievements_list):
         desc = str(ach.get('desc') or '').strip()
         points = str(ach.get('points', 0))
         type_str = str(ach.get('type') or '').strip()
+        badge = str(ach.get('badge', '')) # Inclui badge no hash
         
-        entry = f"{id_str}|{mem}|{title}|{desc}|{points}|{type_str}"
+        entry = f"{id_str}|{mem}|{title}|{desc}|{points}|{type_str}|{badge}"
         standardized.append(entry)
     
     standardized.sort()
@@ -168,12 +169,11 @@ MEM_TYPES = {
     "I": "word_be", "J": "tbyte_be", "G": "dword_be", "L": "low4", "U": "high4", "K": "bitcount",
     "fF": "float32", "fB": "float32_be", "fH": "double32", "fI": "double32_be", "fM": "mbf32", "fL": "mbf32_le",
 }
-MEM_TYPE_KEYS = sorted(MEM_TYPES, key=len, reverse=True)
 PREFIXES = {"d": "delta", "p": "prior", "b": "bcd", "~": "invert"}
 CMP_MAP = {"!=": "!=", ">=": ">=", "<=": "<=", "=": "==", ">": ">", "<": "<"}
 CMP_KEYS = sorted(CMP_MAP.keys(), key=len, reverse=True)
 
-def parse_value(val_str: str) -> str:
+def parse_value(val_str: str, raw_hex: bool = False) -> str:
     val_str = val_str.replace(" ", "")
     if not val_str: return "value(0)"
     
@@ -204,7 +204,14 @@ def parse_value(val_str: str) -> str:
         else:
             result = "value(0)"
     elif val_str.isdigit():
-        result = f"value({int(val_str)})"
+        val_int = int(val_str)
+        # Force Hexadecimal with Padding
+        hex_str = f"0x{val_int:02x}"
+        if raw_hex:
+            result = hex_str
+        else:
+            result = f"value({hex_str})"
+            
     elif val_str.replace('.', '', 1).isdigit():
         result = f"float({val_str})"
     else:
@@ -215,9 +222,10 @@ def parse_value(val_str: str) -> str:
 def parse_hits(right_str: str):
     if not right_str: return "0", ""
     right_str = right_str.strip('.')
-    match = re.search(r'(\d+)\.(\d+)', right_str)
+    match = re.search(r'((?:0x)?[\da-fA-F]+)\.(\d+)', right_str)
     if match:
-        return match.group(1), f".with_hits({match.group(2)})"
+        hits_val = int(match.group(2))
+        return match.group(1), f".with_hits({hits_val})"
     return str(int(right_str)) if right_str.isdigit() else right_str, ""
 
 def parse_comparison(cond_str: str):
@@ -245,17 +253,14 @@ def parse_condition(cond_str: str):
         if right_str.startswith("f"): right_str = right_str[1:]
         
         left = parse_value(left_str)
-        right = parse_value(right_str)
+        # Decide safety for right side
+        use_raw_right = not left.startswith("float(")
+        right = parse_value(right_str, raw_hex=use_raw_right)
+        
         if not left: left = "value(0)"
         if not right: right = "value(0)"
 
-        is_left_const = left.startswith('value(') or left.startswith('float(') or '(' not in left
-        is_right_const = right.startswith('value(') or right.startswith('float(') or '(' not in right
-
-        if is_left_const and is_right_const:
-            core_logic = f"Condition({left}, '{py_op}', {right})"
-        else:
-            core_logic = f"({left} {py_op} {right})"
+        core_logic = f"({left} {py_op} {right})"
         
         if hits: core_logic += hits
 
@@ -296,7 +301,9 @@ def extract_achievements(source_data, is_file=False):
                                     'title': parts[2].strip('"'),
                                     'desc': parts[3].strip('"'),
                                     'points': parts[5] if len(parts)>5 else "0",
-                                    'type': ""
+                                    'type': "",
+                                    # Tenta extrair badge do formato TXT (geralmente no final)
+                                    'badge': parts[6].strip(':').strip() if len(parts)>6 else "00000"
                                 })
         except Exception as e:
             print(f"[ERROR] Failed to read file: {e}")
@@ -331,7 +338,8 @@ def extract_from_json_obj(content):
             'desc': a.get('Description', '') or '',
             'points': a.get('Points', 0),
             'mem': a.get('MemAddr', '') or '',
-            'type': a.get('Type') or ''
+            'type': a.get('Type') or '',
+            'badge': a.get('BadgeName', '00000') # <--- Badge Support
         })
     return data
 
@@ -354,6 +362,7 @@ def generate_script(game_id, achievements, source_name):
         desc = ach['desc'].replace('"', '\\"')
         ach_id = ach['id']
         ach_type = ach.get('type', '')
+        badge = ach.get('badge', '00000')
 
         type_str = ""
         if ach_type == "progression": type_str = ", type=AchievementType.PROGRESSION"
@@ -382,7 +391,7 @@ def generate_script(game_id, achievements, source_name):
         lines.append(f'    title="""{title}""",')
         lines.append(f'    description="""{desc}""",')
         lines.append(f'    points={ach["points"]}{type_str},')
-        lines.append(f'    id={ach_id}')
+        lines.append(f'    id={ach_id}, badge="{badge}"')
         lines.append(")")
         
         if core_var: lines.append(f"ach_{ach_id}.add_core({core_var})")
