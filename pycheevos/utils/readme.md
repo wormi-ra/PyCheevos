@@ -1,6 +1,6 @@
 # @pycheevos/utils
 
-The **Utils** module provides powerful migration tools to convert existing RetroAchievements data (Code Notes and Achievements) into modern PyCheevos Python scripts.
+The **Utils** module provides powerful migration tools to convert existing RetroAchievements data (Code Notes, Achievements, and Leaderboards) into modern PyCheevos Python scripts.
 
 You can access these tools via the command line interface:
 
@@ -43,22 +43,24 @@ When you provide a Game ID, the tool performs a smart scan of your emulator dire
 * **Medium Priority**: `[ID]-Notes.json` or `[ID].json`. These usually contain the last saved state from the server.
 
 
-3. **Parsing**: It reads the file line-by-line (for TXT) or parses the object structure (for JSON) to extract memory addresses and logic strings.
+3. **Parsing**: It reads the file line-by-line (for TXT) or parses the object structure (for JSON) to extract memory addresses, logic strings, and badge IDs.
 
 **Server Download (Fallback)**
 If no local files are found, the script prompts for your RA credentials. It connects securely to fetch the latest game data directly from the database, ensuring you always have a starting point even on a fresh install.
 
 ### 3. **The Smart Importer (Unified)**
 
-**Menu Option:** `3` (Recommended)
+**Menu Option:** `4` (Recommended)
 
-This is the most powerful tool in the kit. It combines Note processing and Achievement generation to produce human-readable code.
+This is the most powerful tool in the kit. It combines Note processing, Achievement generation, and Leaderboard generation to produce human-readable code.
 
-**How it works:**
+**Key Features:**
 
 1. **Generates Notes**: Downloads Code Notes and creates a `notes_[ID].py` file, defining variables like `health = byte(0x1234)`.
 2. **Maps Variables**: It builds a dictionary of addresses -> variable names.
-3. **Generates Achievements**: It parses existing achievements, but instead of writing raw addresses (`byte(0x1234)`), it **automatically replaces them** with the variable names found in step 1.
+3. **Smart Generation**: It parses existing achievements and leaderboards, replacing raw addresses (`byte(0x1234)`) with variable names (`health`) in the generated code.
+4. **Preserves Badges**: Automatically extracts the `BadgeName` (icon ID) to ensure your badges are not reset to "00000" upon saving.
+5. **Smart Reconciliation**: If you have local Achievements but are missing local Leaderboards, it will automatically fetch the missing data from the server to generate a complete set.
 
 **Comparison:**
 
@@ -77,7 +79,7 @@ This is the most powerful tool in the kit. It combines Note processing and Achie
 
 ### 4. **Legacy/Individual Importers**
 
-If you only need to generate one type of file, you can use Options 1 or 2.
+If you only need to generate one specific type of file, you can use the individual options.
 
 #### **Import Notes**
 
@@ -110,10 +112,10 @@ current_health = (base_pointer >> dword(0x44) >> dword(0x10) >> byte(0x30))
 
 **Menu Option:** `2`
 
-Reads an existing achievement set and generates a complete Python script (`scripts/achievement_[ID].py`) with all logic translated.
+Reads an existing achievement set and generates a complete Python script (`scripts/achievement_[ID].py`) with all logic translated. Supports extracting Badge IDs.
 
 > [!TIP]
-> Use **Option 3** instead to get variable names in your logic. Option 2 produces "Raw" logic with memory addresses.
+> Use **Option 4 (Unified)** instead to get variable names in your logic. Option 2 produces "Raw" logic with memory addresses.
 
 **Logic Translation Capabilities:**
 The parser handles complex RetroAchievements logic features automatically:
@@ -124,17 +126,11 @@ The parser handles complex RetroAchievements logic features automatically:
 * **Floats**: Correctly identifies and converts floating-point values.
 * **Flags**: Translates all logic flags (`R:`, `P:`, `M:`, `A:`, etc.) into wrapper functions like `reset_if(...)`.
 
-**Example Conversion:**
+#### **Import Leaderboards**
 
-* **Original MemString**:
-`0xH1234=1_R:0xH5678!=0`
-* **Generated Python**:
-```python
-logic = [
-    # Condition (Cleaner syntax)
-    byte(0x1234) == 0x01,
+**Menu Option:** `3`
 
-    # Reset Flag (Wrapper function)
-    reset_if(byte(0x5678) != 0x00)
-]
-```
+Reads existing leaderboards and generates a Python script (`scripts/leaderboard_[ID].py`) containing the Start, Cancel, Submit, and Value logic.
+
+* **Logic Parsing**: Splits the standard Leaderboard string (`STA:..::CAN:..::SUB:..::VAL:..`) into readable Python lists.
+* **Raw Import**: Like Option 2, this generates logic using raw memory addresses. For variable mapping, use Option 4.
