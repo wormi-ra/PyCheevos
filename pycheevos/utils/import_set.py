@@ -13,6 +13,30 @@ sys.path.insert(0, ROOT_DIR)
 CACHE_PATH_FILE = os.path.join(ROOT_DIR, '.racache_path')
 LOGIN_CACHE_FILE = os.path.join(ROOT_DIR, '.login_cache')
 
+FORMAT_MAPPING = {
+    'SCORE': 'SCORE',
+    'TIME': 'TIME',
+    'FRAMES': 'FRAMES',
+    'MILLISECS': 'MILLISECS',
+    'SECS': 'SECS',
+    'VALUE': 'VALUE',
+    'UNSIGNED': 'UNSIGNED',
+    'MINUTES': 'MINUTES',
+    'SECS_AS_MINS': 'SECS_AS_MINS',
+    'FLOAT1': 'FLOAT1',
+    'FLOAT2': 'FLOAT2',
+    'FLOAT3': 'FLOAT3',
+    'FLOAT4': 'FLOAT4',
+    'FLOAT5': 'FLOAT5',
+    'FLOAT6': 'FLOAT6',
+    'FIXED1': 'FIXED1',
+    'FIXED2': 'FIXED2',
+    'FIXED3': 'FIXED3',
+    'TENS': 'TENS',
+    'HUNDREDS': 'HUNDREDS',
+    'THOUSANDS': 'THOUSANDS'
+}
+
 def get_racache_path():
     return import_notes.get_racache_path()
 
@@ -37,7 +61,7 @@ def calculate_checksum(data_list):
     data_str = "||".join(standardized)
     return hashlib.md5(data_str.encode('utf-8')).hexdigest()
 
-# --- LOGIC PARSER (SMART) ---
+# --- LOGIC PARSER ---
 
 FLAG_WRAPPER_MAP = {
     "R:": "reset_if", "P:": "pause_if", "M:": "measured", "Q:": "measured_if",
@@ -207,7 +231,6 @@ def build_address_map(notes):
 def extract_from_json_obj(content):
     data_ach = []
     data_lb = []
-    
     source_ach = []
     source_lb = []
     
@@ -402,7 +425,9 @@ def generate_script(game_id, achievements, leaderboards, source_name):
             desc = lb['desc'].replace('"', '\\"')
             fmt = lb['format']
             lower = "True" if lb['lower_is_better'] else "False"
-            fmt_enum = f"LeaderboardFormat.{fmt}" if fmt else "LeaderboardFormat.VALUE"
+            
+            safe_fmt = FORMAT_MAPPING.get(fmt, 'VALUE')
+            fmt_enum = f"LeaderboardFormat.{safe_fmt}"
 
             lines.append(f"# --- LB: {title} ---")
             sections = parse_lb_logic(lb['mem'])
@@ -499,7 +524,7 @@ def process_game(game_id):
     elif not local_achs and not local_lbs:
         final_achs, final_lbs = server_achs, server_lbs
         final_source = "RA Server"
-        status_msg = "Server Only"
+        status_msg = "Server Only (New Import)"
     elif not server_achs and not server_lbs:
         final_achs, final_lbs = local_achs, local_lbs
         final_source = local_source

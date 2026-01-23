@@ -61,6 +61,7 @@ class LeaderboardFormat(Enum):
     SECS_AS_MINS    = "SECS_AS_MINS"
     VALUE           = "VALUE"
     UNSIGNED        = "UNSIGNED"
+    TIME            = "TIME"
     TENS            = "TENS"
     HUNDREDS        = "HUNDREDS"
     THOUSANDS       = "THOUSANDS"

@@ -12,6 +12,31 @@ sys.path.insert(0, ROOT_DIR)
 CACHE_PATH_FILE = os.path.join(ROOT_DIR, '.racache_path')
 LOGIN_CACHE_FILE = os.path.join(ROOT_DIR, '.login_cache')
 
+# --- MAPA DE FORMATOS (Tradução RA -> PyCheevos) ---
+FORMAT_MAPPING = {
+    'SCORE': 'SCORE',
+    'TIME': 'FRAMES',      # Corrige TIME -> FRAMES
+    'FRAMES': 'FRAMES',
+    'MILLISECS': 'MILLISECS',
+    'SECS': 'SECS',
+    'VALUE': 'VALUE',
+    'UNSIGNED': 'UNSIGNED',
+    'MINUTES': 'MINUTES',
+    'SECS_AS_MINS': 'SECS_AS_MINS',
+    'FLOAT1': 'FLOAT1',
+    'FLOAT2': 'FLOAT2',
+    'FLOAT3': 'FLOAT3',
+    'FLOAT4': 'FLOAT4',
+    'FLOAT5': 'FLOAT5',
+    'FLOAT6': 'FLOAT6',
+    'FIXED1': 'FIXED1',
+    'FIXED2': 'FIXED2',
+    'FIXED3': 'FIXED3',
+    'TENS': 'TENS',
+    'HUNDREDS': 'HUNDREDS',
+    'THOUSANDS': 'THOUSANDS'
+}
+
 def get_racache_path():
     path = None
     if os.path.exists(CACHE_PATH_FILE):
@@ -233,7 +258,10 @@ def generate_script(game_id, leaderboards, source_name):
     lines.append("")
 
     for lb in leaderboards:
-        fmt_enum = f"LeaderboardFormat.{lb['format']}" if lb['format'] else "LeaderboardFormat.VALUE"
+        raw_fmt = lb['format']
+        safe_fmt = FORMAT_MAPPING.get(raw_fmt, 'VALUE')
+        fmt_enum = f"LeaderboardFormat.{safe_fmt}"
+        
         lower = "True" if lb['lower'] else "False"
         
         lines.append(f"# --- LB: {lb['title']} ---")
