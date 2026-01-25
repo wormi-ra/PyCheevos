@@ -15,7 +15,7 @@ LOGIN_CACHE_FILE = os.path.join(ROOT_DIR, '.login_cache')
 
 FORMAT_MAPPING = {
     'SCORE': 'SCORE',
-    'TIME': 'TIME',
+    'TIME': 'FRAMES',
     'FRAMES': 'FRAMES',
     'MILLISECS': 'MILLISECS',
     'SECS': 'SECS',
@@ -157,7 +157,7 @@ def parse_condition(cond_str: str):
         val = parse_value(left_str)
         core_logic = f"{val}" if val and val != "0" else "value(0)"
     else:
-        right_str, hits = parse_hits(right_str)
+        right_str, hits = parse_hits(right_str) # type: ignore
         if right_str.startswith("f"): right_str = right_str[1:]
         left = parse_value(left_str)
         use_raw_right = not left.startswith("float(")
@@ -195,9 +195,14 @@ def parse_lb_logic(mem_string):
         elif code == "SUB:": target = 'submit'
         elif code == "VAL:": target = 'value'
         if target:
-            for cond in logic_str.split('_'):
-                if cond:
-                    sections[target].append(parse_condition(cond))
+            groups = logic_str.split('S')
+            for group_str in groups:
+                group_conds = []
+                for cond in group_str.split('_'):
+                    if cond:
+                        group_conds.append(parse_condition(cond))
+                if group_conds:
+                    sections[target].append(group_conds)
     return sections
 
 def build_address_map(notes):
@@ -432,12 +437,22 @@ def generate_script(game_id, achievements, leaderboards, source_name):
             lines.append(f"# --- LB: {title} ---")
             sections = parse_lb_logic(lb['mem'])
             
-            for section_name, conditions in sections.items():
-                if not conditions: continue
-                var_name = f"lb_{lb_id}_{section_name}"
-                lines.append(f"{var_name} = [")
-                for c in conditions: lines.append(f"    {c},")
-                lines.append("]")
+            def write_groups(section_name, groups):
+                arg_names = []
+                for i, group in enumerate(groups):
+                    suffix = "" if i == 0 else f"_alt{i}"
+                    var_name = f"lb_{lb_id}_{section_name}{suffix}"
+                    arg_names.append(var_name)
+                    
+                    lines.append(f"{var_name} = [")
+                    for c in group: lines.append(f"    {c},")
+                    lines.append("]")
+                return ", ".join(arg_names)
+
+            start_args = write_groups('start', sections['start'])
+            cancel_args = write_groups('cancel', sections['cancel'])
+            submit_args = write_groups('submit', sections['submit'])
+            value_args = write_groups('value', sections['value'])
 
             lines.append(f"lb_{lb_id} = Leaderboard(")
             lines.append(f'    title="""{title}""",')
@@ -447,10 +462,10 @@ def generate_script(game_id, achievements, leaderboards, source_name):
             lines.append(f'    lower_is_better={lower}')
             lines.append(")")
             
-            if sections['start']: lines.append(f"lb_{lb_id}.set_start(lb_{lb_id}_start)")
-            if sections['cancel']: lines.append(f"lb_{lb_id}.set_cancel(lb_{lb_id}_cancel)")
-            if sections['submit']: lines.append(f"lb_{lb_id}.set_submit(lb_{lb_id}_submit)")
-            if sections['value']: lines.append(f"lb_{lb_id}.set_value(lb_{lb_id}_value)")
+            if start_args: lines.append(f"lb_{lb_id}.set_start({start_args})")
+            if cancel_args: lines.append(f"lb_{lb_id}.set_cancel({cancel_args})")
+            if submit_args: lines.append(f"lb_{lb_id}.set_submit({submit_args})")
+            if value_args: lines.append(f"lb_{lb_id}.set_value({value_args})")
             
             lines.append(f"my_set.add_leaderboard(lb_{lb_id})")
             lines.append("")
