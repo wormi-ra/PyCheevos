@@ -59,14 +59,23 @@ class MemoryExpression:
     def _build_conditions(self, cmp: str, rvalue):
         from .condition import Condition, ConditionList
         from .value import ConstantValue
-
+        
+        optimized_terms = self.terms[:]
+        
+        if optimized_terms[-1][1] == Flag.SUB_SOURCE:
+            for i in range(len(optimized_terms) - 2, -1, -1):
+                if optimized_terms[i][1] == Flag.ADD_SOURCE:
+                    positive_term = optimized_terms.pop(i)
+                    optimized_terms.append(positive_term)
+                    break
+        
         conditions = []
 
-        for i in range(len(self.terms) - 1):
-            val, flag = self.terms[i]
+        for i in range(len(optimized_terms) - 1):
+            val, flag = optimized_terms[i]
             conditions.append(Condition(val, flag=flag))
 
-        last_val, last_flag = self.terms[-1]
+        last_val, last_flag = optimized_terms[-1]
         
         if last_flag == Flag.SUB_SOURCE:
             conditions.append(Condition(last_val, flag=Flag.SUB_SOURCE))
@@ -128,7 +137,7 @@ class MemoryValue:
     
     def __sub__(self, other):
         expr = MemoryExpression(self) 
-        return expr + other
+        return expr - other
 
     def prior(self): return MemoryValue(self.address, self.size, MemoryType.PRIOR)
     def delta(self): return MemoryValue(self.address, self.size, MemoryType.DELTA)
@@ -149,7 +158,7 @@ class MemoryValue:
     def render(self) -> str:
         
         if self.mtype == MemoryType.RECALL:
-            return "0"
+            return "{recall}"
 
         hex_addr = f"{self.address:04x}"
         size_str = self.size.value
@@ -172,7 +181,7 @@ class RecallValue(MemoryValue):
         super().__init__(0, MemorySize.BIT8, MemoryType.RECALL)
     
     def render(self) -> str:
-        return "0"
+        return "{recall}"
     
     def __str__(self):
         return self.render()
