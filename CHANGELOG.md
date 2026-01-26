@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.6] - 26/01/2026
+
+### Added
+- **Leaderboards Upgrade:**
+    - Added support for **Alt Groups** in Leaderboards logic (Start, Cancel, Submit, Value). The `set_*` methods now accept multiple arguments (`core, alt1, alt2...`).
+    - The Importer now correctly parses and generates Python code for Leaderboards with multiple condition groups (separated by `S`).
+- **Leaderboard Formats:** Added explicit mapping for RA formats (e.g., `TIME` -> `FRAMES`) to ensure valid enum generation in imported scripts.
+
+### Fixed
+- **RecallValue Bug:** Fixed `RecallValue` (and `MemoryValue` of type `RECALL`) rendering as `"0"` instead of `"{recall}"`, which broke memory logic dependent on remembered values. (Fixes #12)
+- **Subtraction Operator:** Corrected a typo in `MemoryValue.__sub__` where the subtraction operator (`-`) was incorrectly performing addition (`+`). (Fixes #13)
+- **Logic Optimization:** Implemented intelligent operand reordering in `MemoryExpression`. Subtractions (`A - B`) are now automatically reordered to `SubSource B`, `AddSource A` to avoid generating redundant `0 == Target` conditions.
+- **Remember Logic:** Fixed `remember()` helper incorrectly converting subtractions into additions. It now properly handles negative terms by reordering or appending a zero-check where necessary.
+
+---
+
 ## [0.0.5] - 15/01/2026
 
 ### Added

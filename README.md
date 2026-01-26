@@ -4,9 +4,9 @@
 
 Inspired by **RATools** and **Cruncheevos**, it allows you to leverage the full power of the Python ecosystem (loops, functions, classes) to build complex achievement logic with clean, readable code.
 
-* **[Core](https://github.com/CarlosNatanael/PyCheevos/blob/main/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) and **f-strings** for clean condition chaining and text formatting.
-* **[Models](https://github.com/CarlosNatanael/PyCheevos/blob/main/models)**: Provides the structure for Sets, Achievements, Leaderboards, and **Rich Presence** (now supporting independent saving and tuple lookups).
-* **[Utils](https://github.com/CarlosNatanael/PyCheevos/blob/main/utils)**: Contains the **Smart Importer** CLI that automatically maps Code Notes to Python variables, fetching data from local files or directly from the RetroAchievements server.
+* **[Core](https://github.com/CarlosNatanael/PyCheevos/tree/main/pycheevos/core)**: Handles condition parsing, memory addresses, arithmetic (`byte`, `word`, `delta`) and logic helpers (`reset_if`, `measured`). Now supports logical operators (`&`, `|`, `~`) and **f-strings** for clean condition chaining and text formatting.
+* **[Models](https://github.com/CarlosNatanael/PyCheevos/tree/main/pycheevos/models)**: Provides the structure for Sets, Achievements, Leaderboards, and **Rich Presence** (now supporting independent saving and tuple lookups).
+* **[Utils](https://github.com/CarlosNatanael/PyCheevos/tree/main/pycheevos/utils)**: Contains the **Smart Importer** CLI that automatically maps Code Notes to Python variables, fetching data from local files or directly from the RetroAchievements server.
 
 #
 
@@ -18,7 +18,7 @@ You can install PyCheevos directly from PyPI:
 pip install pycheevos
 ```
 > [!NOTE]
-> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.5`
+> Since the library is under active development, it is recommended to pin the version in your project to avoid breaking changes: `pip install pycheevos==0.0.6`
 
 ### Usage
 Using this library assumes familiarity with the [RetroAchievements](https://docs.retroachievements.org) workflow and memory inspection.
