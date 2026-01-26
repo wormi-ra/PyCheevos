@@ -46,14 +46,30 @@ class MemoryExpression:
 
     def with_flag(self, flag: Flag):
         from .condition import Condition, ConditionList
+        from .value import ConstantValue 
         
+        optimized_terms = self.terms[:]
+        
+        if optimized_terms[-1][1] == Flag.SUB_SOURCE:
+            for i in range(len(optimized_terms) - 2, -1, -1):
+                if optimized_terms[i][1] == Flag.ADD_SOURCE:
+                    positive_term = optimized_terms.pop(i)
+                    optimized_terms.append(positive_term)
+                    break
+
         conditions = []
-        for i in range(len(self.terms)):
-            val, term_flag = self.terms[i]
-            if i == len(self.terms) - 1:
-                conditions.append(Condition(val, flag=flag))
-            else:
-                conditions.append(Condition(val, flag=term_flag))
+        
+        for i in range(len(optimized_terms) - 1):
+            val, term_flag = optimized_terms[i]
+            conditions.append(Condition(val, flag=term_flag))
+        last_val, last_flag = optimized_terms[-1]
+        
+        if last_flag == Flag.SUB_SOURCE:
+            conditions.append(Condition(last_val, flag=Flag.SUB_SOURCE))
+            conditions.append(Condition(ConstantValue(0), flag=flag))
+        else:
+            conditions.append(Condition(last_val, flag=flag))
+            
         return ConditionList(conditions)
 
     def _build_conditions(self, cmp: str, rvalue):
@@ -156,7 +172,6 @@ class MemoryValue:
         return Condition(self, cmp, other)
 
     def render(self) -> str:
-        
         if self.mtype == MemoryType.RECALL:
             return "{recall}"
 
@@ -198,14 +213,9 @@ class ConstantValue:
             return f"f{self.value}"
         return str(self.value)
     
-    def delta(self):
-        return self
-    
-    def prior(self):
-        return self
-    
-    def bcd(self):
-        return self
+    def delta(self): return self
+    def prior(self): return self
+    def bcd(self): return self
     
     def invert(self):
         if isinstance(self.value, int):
