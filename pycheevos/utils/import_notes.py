@@ -456,7 +456,7 @@ def process_game(game_id):
             final_source = local_source
             status_msg = "Local Modifications Detected (Unsynced)"
             
-            diff = len(local_notes) - len(server_notes)
+            diff = len(local_notes) - len(server_notes) # type: ignore
             if diff != 0: status_msg += f" [Diff: {diff:+d} notes]"
 
     print(f"\n[RESULT] Using: {final_source}")

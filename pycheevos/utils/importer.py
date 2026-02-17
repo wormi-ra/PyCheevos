@@ -2,6 +2,7 @@ from pycheevos.utils import import_notes
 from pycheevos.utils import import_set
 from pycheevos.utils import import_achievements
 from pycheevos.utils import import_leaderboard
+from pycheevos.utils import dump_notes
 import sys
 import os
 
@@ -15,10 +16,11 @@ def main():
         return
     
     print("\nWhat would you like to import?")
-    print("[1] Code Notes only")
+    print("[1] Code Notes (Generate Python Script)")
     print("[2] Achievements only (Raw)")
     print("[3] Leaderboards only (Raw)")
     print("[4] Unified (Notes + Smart Achievements + Leaderboards)")
+    print("[5] Dump Code Notes to TXT (Documentation)")
     print("[q] Quit")
 
     choice = input("\nChoice: ").strip().lower()
@@ -27,7 +29,7 @@ def main():
         return
     
     if choice == '1':
-        print("\n --- Start Notes Import ---")
+        print("\n --- Start Notes Import (Python) ---")
         import_notes.process_game(game_id)
     
     elif choice == '2':
@@ -41,6 +43,10 @@ def main():
     elif choice == '4':
         print("\n--- Unified Import ---")
         import_set.process_game(game_id)
+
+    elif choice == '5':
+        print("\n--- Dumping Notes to TXT ---")
+        dump_notes.process_dump(game_id)
     
     else:
         print("Invalid option")
