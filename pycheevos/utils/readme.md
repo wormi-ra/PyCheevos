@@ -1,6 +1,6 @@
 # @pycheevos/utils
 
-The **Utils** module provides powerful migration tools to convert existing RetroAchievements data (Code Notes, Achievements, and Leaderboards) into modern PyCheevos Python scripts.
+The **Utils** module provides powerful migration tools to convert existing RetroAchievements data (Code Notes, Achievements, and Leaderboards) into modern PyCheevos Python scripts, as well as documentation tools.
 
 You can access these tools via the command line interface:
 
@@ -15,10 +15,10 @@ These tools are **Hybrid**:
 
 ### Table of Contents
 
-1. [First Run & Setup](https://www.google.com/search?q=%231-first-run--setup)
-2. [Import Strategy](https://www.google.com/search?q=%232-import-strategy)
-3. [The Smart Importer (Unified)](https://www.google.com/search?q=%233-the-smart-importer-unified)
-4. [Legacy/Individual Importers](https://www.google.com/search?q=%234-legacyindividual-importers)
+1. [First Run & Setup]()
+2. [Import Strategy]()
+3. [The Smart Importer (Unified)]()
+4. [Individual Importers & Tools]()
 
 ### 1. **First Run & Setup**
 
@@ -77,11 +77,11 @@ This is the most powerful tool in the kit. It combines Note processing, Achievem
 
 
 
-### 4. **Legacy/Individual Importers**
+### 4. **Individual Importers & Tools**
 
-If you only need to generate one specific type of file, you can use the individual options.
+If you only need to generate one specific type of file or extract documentation, you can use the individual options.
 
-#### **Import Notes**
+#### **Import Notes (Python Script)**
 
 **Menu Option:** `1`
 
@@ -134,3 +134,18 @@ Reads existing leaderboards and generates a Python script (`scripts/leaderboard_
 
 * **Logic Parsing**: Splits the standard Leaderboard string (`STA:..::CAN:..::SUB:..::VAL:..`) into readable Python lists.
 * **Raw Import**: Like Option 2, this generates logic using raw memory addresses. For variable mapping, use Option 4.
+
+#### **Dump Code Notes to TXT (Documentation)**
+
+**Menu Option:** `5`
+
+This tool extracts Code Notes and saves them into a clean, formatted text file for offline reference or documentation.
+
+* **Smart Selection**: Like the Unified importer, it compares your local files against the server and picks the most recent version.
+* **Output**: Files are saved to `notes_dump/[ID]-Notes.txt`.
+* **Format**:
+```text
+0x001234: Current Health
+
+0x001238: Level ID
+```
