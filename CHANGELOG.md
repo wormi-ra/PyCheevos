@@ -1,4 +1,21 @@
 # Changelog
+## [0.0.7] - 17/02/2026
+
+### Added
+- **Documentation Tool:**
+    - Added a new option `[5] Dump Code Notes to TXT` to the CLI Importer (`pycheevos-import`).
+    - This tool exports formatted, readable text files of Code Notes to a `notes_dump/` folder for offline reference.
+    - Uses the "Smart Sync" logic to automatically choose the most recent notes between Local files and the RA Server.
+- **Rich Presence Upgrade:**
+    - Added `add_format(name, type)` method to easily register value formats (e.g., Money, Points).
+    - Added `default` parameter to `add_lookup` to streamline defining fallback values (`*`).
+    - Implemented `__str__` and `__repr__` methods, allowing users to simply `print(rp)` to see the generated script output.
+
+### Changed
+- **Importer Architecture:** Modularized `import_notes.py` to expose synchronization logic (`get_best_notes`), allowing the new Dump tool to reuse the connection and comparison strategies.
+- **Rich Presence Rendering:** Improved the sorting logic for Lookups in the generated output. It now prioritizes Numeric keys, followed by String keys, ensuring the Default key (`*`) is always placed at the end.
+
+---
 
 ## [0.0.6] - 26/01/2026
 
