@@ -63,8 +63,11 @@ class Achievement:
             full_mem = core_string + "S" + "S".join(alt_strings)
         else:
             full_mem = core_string
+            
+        safe_title = self.title.replace('"', '\\"')
+        safe_desc = self.description.replace('"', '\\"')
         
         return (
-            f'{self.id}:"{full_mem}":"{self.title}":"{self.description}"'
+            f'{self.id}:"{full_mem}":"{safe_title}":"{safe_desc}"'
             f':::{self.type}:{self.author}:{self.points}:::::{self.badge}'
         )
