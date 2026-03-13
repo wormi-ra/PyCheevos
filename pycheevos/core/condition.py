@@ -131,3 +131,11 @@ class Condition:
     
     def __repr__(self):
         return self.render()
+    
+    def __rshift__(self, other):
+        from pycheevos.core.value import MemoryExpression
+        from pycheevos.core.constants import Flag
+        
+        expr = MemoryExpression(self, start_flag=Flag.ADD_ADDRESS)
+        expr.terms.append((other, Flag.ADD_SOURCE))
+        return expr
