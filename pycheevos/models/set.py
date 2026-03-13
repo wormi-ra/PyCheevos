@@ -45,24 +45,31 @@ class AchievementSet:
         
         # 1. Saves Achievements/Leaderboards (User.txt)
         user_file = output / f"{self.game_id}-User.txt"
-        with open(user_file, "w", encoding="utf-8") as f:
+        preserved_notes = []
+        
+        mode = "r+" if user_file.exists() else "w"
+        with open(user_file, mode, encoding="utf-8", errors="ignore") as f:
+            if mode == "r+":
+                preserved_notes = [line.strip() for line in f if line.startswith("NO:")]
+                f.seek(0)
             f.write("1.0\n")
             f.write(f"{self.title}\n")
-
             for ach in self.achievements:
                 try:
                     f.write(ach.render() + "\n")
                 except Exception as e:
-                    print(f"error in ID achievement {ach.id}: '{ach.title}'")
-                    print(f" description: {ach.description}")
+                    print(f"Error in ID achievement {ach.id}: '{ach.title}'\n description: {ach.description}")
                     raise e
-            
             for lb in self.leaderboards:
                 try:
                     f.write(lb.render() + "\n")
                 except Exception as e:
                     print(f"error in Leaderboard ID {lb.id}: '{lb.title}'")
                     raise e
+            for note in preserved_notes:
+                f.write(note + "\n")
+            if mode == "r+":
+                f.truncate()
         print(f"Generated User file: {user_file}")
 
         # 2. Saves Rich Presence (Rich.txt)
