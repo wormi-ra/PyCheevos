@@ -563,7 +563,6 @@ def process_game(game_id):
 
     print(f"\n[RESULT] Using: {final_source}")
     print(f"[STATUS] {status_msg}")
-    
     generate_script(game_id, final_achs, final_lbs, final_source)
 
 def find_all_candidates(base_path, game_id):
