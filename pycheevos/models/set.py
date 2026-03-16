@@ -45,6 +45,61 @@ class AchievementSet:
         
         # 1. Saves Achievements/Leaderboards (User.txt)
         user_file = output / f"{self.game_id}-User.txt"
+        json_file = output / f"{self.game_id}.json"
+
+        if json_file.exists():
+            try:
+                import json
+                with open(json_file, 'r', encoding='utf-8') as jf:
+                    game_data = json.load(jf)
+
+                    # --- Synchronize Achievements ---
+                    server_achs = game_data.get('Achievements', [])
+                    title_to_id, desc_to_id, mem_to_id = {}, {}, {}
+
+                    for s_ach in server_achs:
+                        a_id = s_ach.get('ID')
+                        if not a_id: continue
+                        if 'TiTle' in s_ach: title_to_id[s_ach['Title']] = a_id
+                        if 'Description' in s_ach: desc_to_id[s_ach['Description']] = a_id
+                        if 'Mem' in s_ach: mem_to_id[s_ach['Mem']] = a_id
+                    
+                    for ach in self.achievements:
+                        # Rebuilds the memory string for the logic fallback
+                        core_string = ach._render_group(ach.core)
+                        if ach.alts:
+                            full_mem = core_string + "S" + "S".join([ach._render_group(alt) for alt in ach.alts])
+                        else:
+                            full_mem = core_string
+
+                        # The Smart Waterfall
+                        if ach.title in title_to_id:
+                            ach.id = int(title_to_id[ach.title])
+                        elif ach.description in desc_to_id:
+                            ach.id = int(desc_to_id[ach.description])
+                        elif full_mem in mem_to_id:
+                            ach.id = int(mem_to_id[full_mem])
+
+                    # --- Synchronize Leaderboards ---
+                    server_lbs = game_data.get('Leaderboards', [])
+                    lb_title_to_id, lb_desc_to_id = {}, {}
+
+                    for s_lb in server_lbs:
+                        l_id = s_lb.get('ID')
+                        if not l_id: continue
+                        if 'Title' in s_lb: lb_title_to_id[s_lb['Title']] = l_id
+                        if 'Description' in s_lb: lb_desc_to_id[s_lb['Description']] = l_id
+                    
+                    for lb in self.leaderboards:
+                        if lb.title in lb_title_to_id:
+                            lb.id = int(lb_title_to_id[lb.title])
+                        elif lb.description in lb_desc_to_id:
+                            lb.id = int(lb_desc_to_id[lb.description])
+
+                    print(f"[SYNC] IDs successfully synced (Cascade) fom {json_file.name}!")
+            except Exception as e:
+                print(f"[WARNING] Could not sync IDs from JSON: {e}")
+
         preserved_notes = []
         
         mode = "r+" if user_file.exists() else "w"
