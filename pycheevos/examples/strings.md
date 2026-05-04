@@ -45,7 +45,7 @@
 |   5 | AndNext | Mem     | 32-bit BE | 0x1010   | =    | Value   |         | 0x6f007200 |        |
 |   6 |         | Mem     | 32-bit BE | 0x1014   | =    | Value   |         | 0x6c006400 |        |
 
-### Example 6: Japanese LE SHIFT-JIS
+### Example 7: Japanese LE SHIFT-JIS
 `string_equals(0x1000, "こんにちは", encoding="shift-jis", endianness="little")`
 |   # | Flag    | LType   | LSize   | LValue   | Op   | RType   | RSize   | RValue     | Hits   |
 |----:|:--------|:--------|:--------|:---------|:-----|:--------|:--------|:-----------|:-------|
