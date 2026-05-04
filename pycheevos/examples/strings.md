@@ -14,9 +14,9 @@
 
 ### Example 3: Fixed length
 `string_equals(0x1000, "Hello World", 3)`
-|   # | Flag   | LType   | LSize     | LValue   | Op   | RType   | RSize   | RValue     | Hits   |
-|----:|:-------|:--------|:----------|:---------|:-----|:--------|:--------|:-----------|:-------|
-|   1 |        | Mem     | 32-bit BE | 0x1000   | =    | Value   |         | 0x48656c6c |        |
+|   # | Flag   | LType   | LSize     | LValue   | Op   | RType   | RSize   | RValue   | Hits   |
+|----:|:-------|:--------|:----------|:---------|:-----|:--------|:--------|:---------|:-------|
+|   1 |        | Mem     | 24-bit BE | 0x1000   | =    | Value   |         | 0x48656c |        |
 
 ### Example 4: Transform method
 `string_equals(0x1000, "Hello World", transform=delta)`

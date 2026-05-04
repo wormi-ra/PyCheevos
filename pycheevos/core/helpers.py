@@ -74,9 +74,11 @@ def string_equals(
     endianness: Literal["little", "big"] = "big"
 ) -> ConditionList:
     conditions = ConditionList()
-    b = string.encode(encoding)
     if length == 0:
+        b = string.encode(encoding)
         length = len(b)
+    else:
+        b = string.encode(encoding)[:length]
     for i in range(0, length, 4):
         chunk = b[i: i + 4]
         size = {
